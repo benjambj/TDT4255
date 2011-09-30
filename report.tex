@@ -9,6 +9,30 @@ Some motivation here\ldots In this exercise\ldots
 \section{Implementation of the ALU}
 \label{sec:implementation}
 
+\paragraph{Status Flags}
+\label{flags}
+We have four flags, pos 0, 1, 2, 3:
+\begin{description}
+\item[Z (Zero):] Set to 1 if the ALU result is zero
+\item[N (Negative):] Set to 1 if the ALU result is negative
+\item[V (Overflow):] Valid for signed calculations only. Tells whether the result of the computation was too big to store in 31 bits, and whether the calculation wrapped around or not. We have three cases:
+\begin{itemize}
+\item For addition and subtraction, it works blalbala
+\item For left arithmetic shifts it is set if the result is negative while the input was positive, or vice versa. If the calculation wraps around without changing the sign, it is deemed as not being a problem with the signed interpretation, and as such overflow is not set.
+\item  For arithmetic right shift, it isn't valid.
+\end{itemize}
+\item[C (Carry):] Valid for unsigned calculations only. Tells whether the result generated a final bit out of its calculation
+Three cases:
+\begin{itemize}
+\item Add: 33rd bit
+\item Left logical shift: If last bit shifted out was 1
+\item Right logical shift: If last bit shifted out was 1
+\end{itemize}
+Multiplication described in \ref{subsec:limitations}
+\end{description}
+
+
+
 \subsection{The Barrel Shifter}
 \label{subsec:barrelshifter}
 
@@ -17,6 +41,8 @@ Some motivation here\ldots In this exercise\ldots
 
 \subsection{Reusability}
 \label{subsec:reusability}
+
+
 
 
 
