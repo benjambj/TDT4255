@@ -115,7 +115,7 @@ The ALU I created was tested thrice. First, it went through a functionality simu
 The functionality simulation was done with the program Modelsim. A VHDL test bench\footnote{The testbench file is enclosed, and is named \emph{alu\_tb.vhd}} was created for driving the input signals of my ALU component to different values, and then checking in Modelsim whether $O$ and $S$ were assigned the expected values. In the test bench, $A$ and $B$ are set for 50 ns at a time, and this makes up a test case. Every test case is commented with the expected value of both $O$ and $S$. Checks for functional consistency were then manually performed by looking at the ALU output signals' values (see \autoref{fig:funcsim_shift_carry}), and then checking whether they matched the comments for the given test case or not. 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=0.5, bb=0 0 400 200]{figures/func_sim_wave_shift_carry_test.png}
+  \includegraphics[scale=0.5]{figures/func_sim_wave_shift_carry_test.png}
   \caption{\label{fig:funcsim_shift_carry} Testing function 0b1000 = 0x8 = logical left shift}
 \end{figure}
 
