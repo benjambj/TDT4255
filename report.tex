@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage[colorlinks=true]{hyperref}
 \title{Exercise 1 - Report}
 \author{Benjamin Bj\o rnseth}
 \begin{document}
@@ -22,9 +23,40 @@ As I had not had any prior exposure neither to VHDL nor embedded systems program
 
 \section{Solution}
 \label{sec:solution}
+The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This file contains the description of my ALU entity, which has five signals:
+\begin{enumerate}
+\item alu_in_a, which henceforth will be referred to as $A$.
+\item alu_in_b, which henceforth will be referred to as $B$.
+\item alu_in_funct, which henceforth will be referred to as $F$.
+\item alu_out, which henceforth will be referred to as $O$.
+\item alu_status, which henceforth will be referred to as $S$.
+\end{enumerate}
+Signals $A$, $B$ and $F$ are input signals, while $O$ and $S$ are output signals. $A$ and $B$ contains the function operands, $F$ is used for deciding which operation to perform, $O$ stores the result, and $S$ stores the status flag as described in \autoref{flags}.
 
 \paragraph{Supported Operations}
 \label{ops}
+The functions my ALU ended up supporting are listed in \autoref{functions}. The gap between multiplication and nor results from an unimplemented division function, which was supposed to have function code $0x3$. The code values have been grouped together in logical groups for ease of remembrance, and not through some clever scheme to reduce circuit logic.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|l|l|}
+    \hline
+    {\bf Function}         & {\bf Function Code} \\ \hline
+    addition               & 0x0 \\ \hline
+    subtraction            & 0x1 \\ \hline
+    multiplication         & 0x2 \\ \hline
+    bitwise logical nor    & 0x4 \\ \hline
+    bitwise logical xor    & 0x5 \\ \hline
+    bitwise logical or     & 0x6 \\ \hline
+    bitwise logical and    & 0x7 \\ \hline
+    logical left shift     & 0x8 \\ \hline
+    arithmetic left shift  & 0x9 \\ \hline
+    logical right shift    & 0xA \\ \hline
+    arithmetic right shift & 0xB \\ \hline
+  \end{tabular}
+  \caption{Supported functions. The \emph{Function Code} column describes the value of $F$ required to perform the calculation indicated in column \emph{Function}}
+  \label{functions}
+\end{table}
 
 \paragraph{Status Flags}
 \label{flags}
@@ -50,7 +82,7 @@ Multiplication issues described in \ref{subsec:limitations}
 
 
 
-\subsubsection{The Barrel Shifter}
+\subsection{The Barrel Shifter}
 \label{subsubsec:barrelshifter}
 
 
