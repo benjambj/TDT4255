@@ -9,7 +9,7 @@ In this exercise, our task was to make a small combinatorial ALU. I made one whi
 
 \section{Introduction}
 \label{sec:introduction}
-Our task was to implemented a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. It was also to include a barrel shifter as a component. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to contain an output register for storing our status, but what values this could assume and what it would mean was left for us to define. The ALU would then be integerated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
+Our task was to implement a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to include a barrel shifter as a component, as well as an register for storing our status. What values this register could assume after an instruction was performed and what it would mean was left for us to define. The ALU would then be integerated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
 
 We were also to perform three kinds of tests to make sure our design worked:
 \begin{description}
@@ -22,9 +22,6 @@ As I had not had any prior exposure neither to VHDL nor embedded systems program
 
 \section{Solution}
 \label{sec:solution}
-I think what I want to do should go here
-\subsection{Implementation of the ALU}
-\label{sec:implementation}
 
 \paragraph{Supported Operations}
 \label{ops}
@@ -56,16 +53,10 @@ Multiplication issues described in \ref{subsec:limitations}
 \subsubsection{The Barrel Shifter}
 \label{subsubsec:barrelshifter}
 
-\subsubsection{Design Limitations}
-\label{subsec:limitations}
 
-\subsubsection{Reusability}
-\label{subsec:reusability}
-
-
-
-
-
+\section{Result}
+\label{sec:result}
+I think what I ended up doing, and what tests were done should go here.
 \subsection{Tests of the Implementation}
 \label{sec:tests}
 
@@ -78,13 +69,16 @@ Multiplication issues described in \ref{subsec:limitations}
 \subsubsection{Functionality Tests on the FPGA}
 \label{subsec:funcfpga}
 
-\section{Result}
-\label{sec:result}
-I think what I ended up doing, and what tests were done should go here.
+\subsection{Design Limitations}
+\label{subsec:limitations}
+\paragraph{Multiplication}
+
+\subsection{Reusability}
+\label{subsec:reusability}
 
 \section{Discussion}
 \label{sec:discussion}
-Discussion of what went well, and what could've been done better. Things I might have thought about, and things I could have implemented.
+Discussion of what went well, and what could've been done better. Things I might have thought about, and things I could have implemented. Maybe include focus and time lost on understanding our implementation tools, which resulted in less consideration left for e.g. function value => function mapping, supported functions, status flags etc.
 
 \section{Conclusion}
 \label{sec:conclusion}
