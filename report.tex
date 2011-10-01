@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage[colorlinks=true]{hyperref}
+\usepackage[all]{hypcap}
 \title{Exercise 1 - Report}
 \author{Benjamin Bj\o rnseth}
 \begin{document}
@@ -10,7 +11,7 @@ In this exercise, our task was to make a small combinatorial ALU. I made one whi
 
 \section{Introduction}
 \label{sec:introduction}
-Our task was to implement a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to include a barrel shifter as a component, as well as an register for storing our status. What values this register could assume after an instruction was performed and what it would mean was left for us to define. The ALU would then be integerated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
+Our task was to implement a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to include a barrel shifter as a component, as well as a register for storing our status. What values this register could assume after an instruction was performed and what it would mean was left for us to define. The ALU would then be integerated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
 
 We were also to perform three kinds of tests to make sure our design worked:
 \begin{description}
@@ -23,7 +24,7 @@ As I had not had any prior exposure neither to VHDL nor embedded systems program
 
 \section{Solution}
 \label{sec:solution}
-The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This file contains the description of my ALU entity, which the following five signals.
+The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This file contains the description of my ALU entity, which has the following five signals:
 
 \begin{enumerate} 
 \item alu\_in\_a, which henceforth will be referred to as $A$.
@@ -33,7 +34,7 @@ The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This
 \item alu\_status, which henceforth will be referred to as $S$.
 \end{enumerate}
 
-Signals $A$, $B$ and $F$ are input signals, while $O$ and $S$ are output signals. $A$ and $B$ contains the function operands, $F$ is used for deciding which operation to perform, $O$ stores the result, and $S$ stores the status flag as described in \autoref{flags}.
+Signals $A$, $B$ and $F$ are input signals, while $O$ and $S$ are output signals. $A$ and $B$ contain the function operands, $F$ is used for deciding which operation to perform, $O$ stores the result, and $S$ stores the status flag as described in \autoref{subsec:flags}.
 
 \subsection{Supported Operations}
 \label{subsec:ops}
@@ -63,7 +64,7 @@ The functions my ALU ended up supporting are listed in \autoref{tab:functions}. 
 
 \subsection{Status Flags}
 \label{subsec:flags}
-The ALU's different status flags are listed in \autoref{tab:flags}. They have been cleverly defined as different powers of two so that they can be or'ed together to perform conjunction of statuses. Thus, I shall use the phrase `the status flag is set to \emph{\textless{}flag name\textgreater{}}' to mean `$S \& \emph{\textless{}corresponding code\textgreater{}} \neq 0$'
+The ALU's different status flags are listed in \autoref{tab:flags}. They have been cleverly defined as different powers of two so that they can be or'ed together to perform conjunction of statuses. Thus, I shall use the phrase `the status flag is set to \emph{\textless{}flag name\textgreater{}}' to mean `$S \& \emph{\textless{}corresponding code\textgreater{}} \neq 0$'.
 \begin{table}[htbp]
   \centering
   \begin{tabular}{|l|l|}
@@ -77,12 +78,11 @@ The ALU's different status flags are listed in \autoref{tab:flags}. They have be
   \caption{ALU status flags}
   \label{tab:flags}
 \end{table}
-
-their semantics are defined as follows:
+Their semantics are defined as follows:
 \begin{itemize}
 \item The `Zero' flag is set whenever $O = 0$.
-\item The `Negative' flag is set when the operation just performed is of such a nature that a result should be interpreted as a signed number, and when $O < 0$. In particular, it can be set after addition, subtraction, multiplication and arithmetic shifts, but not after the logic operations.
-\item The `Overflow' flag is also used for signed calculations, and is set whenever the finiteness of the result register causes $O$ to unexpectedly change sign\footnote{The exception to this is multiplication, which does not trigger overflow even though it is a signed arithmetic operation. The reason for this is that multiplication is already so severely limited in my implementation that reporting overflow would hardly matter. For more details, see \autoref{subsec:limitations}.}. Speficially, it may be set after addition, subtraction and arithmetic left shift\footnote{Arithmetic right shifts will never overflow, as they use sign extension; see \autoref{subsec:barrelshifter}}. For addition, overflow is set~$\iff~sign(A)=sign(B)\wedge{}sign(A)\neq{}sign(O)$. As subtraction is addition of a negative number, the previous equation holds with $sign(A)=sign(B)$ replaced with $sign(A)\neq{}sign(B)$. For arithmetic left shifts, the overflow flag is set if $O$ has a different sign from $A$. If the calculation does not change the sign, shifting bits out of $A$ is deemed as not being a problem with the signed interpretation, and as such overflow is not set.
+\item The `Negative' flag is set when the operation just performed is of such a nature that a result should be interpreted as a signed number, and then when $O < 0$. In particular, it can be set after addition, subtraction, multiplication and arithmetic shifts, but not after the logic operations.
+\item The `Overflow' flag is also used for signed calculations, and is set whenever the finiteness of the result register causes $O$ to unexpectedly change sign\footnote{The exception to this is multiplication, which cannot trigger overflow even though it is a signed arithmetic operation. The reason for this is that multiplication is already so severely limited in my implementation that reporting overflow would hardly matter. For more details, see \autoref{subsec:limitations}.}. Speficially, it may be set after addition, subtraction and arithmetic left shift\footnote{Arithmetic right shifts will never overflow, as they use sign extension; see \autoref{subsec:barrelshifter}}. For addition, overflow is set~$\iff~sign(A)=sign(B)\wedge{}sign(A)\neq{}sign(O)$. As subtraction is addition of a negative number, the previous equation holds with $sign(A)=sign(B)$ replaced with $sign(A)\neq{}sign(B)$. For arithmetic left shifts, the overflow flag is set if $O$ has a different sign from $A$. If the calculation does not change the sign, shifting bits out of $A$ is deemed as not being a problem with the signed interpretation, and as such overflow is not set.
 \item The `Carry' flag is used for extending the result register on unsigned calculations. For my chosen set of instructions, this is only necessary for logical left/right shifts. In these cases, the carry bit is set to the last bit shifted out.
 \end{itemize}
 
@@ -92,31 +92,31 @@ The ALU does its barrel shifting by delegating its work to two barrel shifter co
 
 Both components have the same structure, with four different signals:
 \begin{itemize}
-\item data\_in, henceforth called $D$, gives the operand to shift.
-\item shift\_amount, henceforth called $SH$, gives the amount by which to shift $D$.
-\item data\_out\_unsigned, henceforth called $OU$, stores the result of a logical shift.
-\item data\_out\_signed, henceforth called $OS$, stores the result of an arithmetic shift.
+\item data\_in gives the operand to shift.
+\item shift\_amount gives the amount by which to shift $D$.
+\item data\_out\_unsigned stores the result of a logical shift.
+\item data\_out\_signed stores the result of an arithmetic shift.
 \end{itemize}
 As you can see, the components perform both a logical and an arithmetic shift simultaneously. This choice of organization is arbitrary; the operations could just as well have been split into a signed and an unsigned shifter; one large shifter; or four small ones. 
 
-The functions are performed by mapping to the predefined VHDL functions $shl$ and $shr$ for the left- and right-shifter, respectively. These are overloaded on signed and unsigned operands, and depending on what their input is will perform either an arithmetic shift or a logical shift. Please see the enclosed source files barrel_shift_left.vhd and barrel_shift_right.vhd for more details. 
+The functions are performed by using the predefined VHDL functions $shl$ and $shr$ for the left- and right-shifter, respectively. These are overloaded on signed and unsigned operands, and depending on what their input is will perform either an arithmetic shift or a logical shift. Please see the enclosed source files \emph{barrel\_shift\_left.vhd} and \emph{barrel\_shift\_right.vhd} for more details. 
 
-There is no status flag calculation logic contained in the shifter components; this is done in the ALU. This choice is deliberate, as it would feel artificial for an independent barrel shifter to include an ALU-specific output. The necessary calculations described in \autoref{subsec:flags} might just as easily be done in the ALU, anyways. Another reason for not performing them in the shifters is that the functionality is implemented through predefined functions, which yield no possibility for doing these calculations efficiently here anyways. If the shifter was on our critical path, swapping to a self-written shifter function might've been worth considering. This would yield more control over transitionary states, and we could've used this for generating the status flags, but it would also break the independency between the shifter and the ALU . As the tests in \autoref{timingsim} show, however, the shifter is not much of a concern, and thus I saw no reason for tarnishing the relatively clean interface of the shifters with a status signal.
+There is no status flag calculation logic contained in the shifter components; this is done in the ALU. This choice is deliberate, as it would feel artificial for an independent barrel shifter to include an ALU-specific output. The necessary calculations described in \autoref{subsec:flags} might just as easily be done in the ALU, anyways. Another reason for not performing them in the shifters is that the functionality is implemented through predefined functions, yielding no  possibility for doing these calculations more efficiently in the shifter anyways. If the shifter was on our critical path, swapping to a self-written shifter function might've been worth considering. This would yield more control over transitionary states, and we could've used this for generating the status flags---but it would also break the independency between the shifter and the ALU . As the tests in \autoref{subsubsec:timingsim} show, however, the shifter is not much of a concern timing-wise, and thus I saw no reason for tarnishing the relatively clean interface of the shifters with a status signal.
 
 \section{Result}
 \label{sec:result}
 I think what I ended up doing, and what tests were done should go here.
 \subsection{Tests of the Implementation}
-\label{sec:tests}
+\label{subsec:tests}
 
 \subsubsection{Functionality Simulation}
-\label{subsec:funcsim}
+\label{subsubsec:funcsim}
 
 \subsubsection{Timing Simulation}
-\label{subsec:timingsim}
+\label{subsubsec:timingsim}
 
 \subsubsection{Functionality Tests on the FPGA}
-\label{subsec:funcfpga}
+\label{subsubsec:funcfpga}
 
 \subsection{Design Limitations}
 \label{subsec:limitations}
