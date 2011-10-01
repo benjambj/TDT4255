@@ -23,14 +23,16 @@ As I had not had any prior exposure neither to VHDL nor embedded systems program
 
 \section{Solution}
 \label{sec:solution}
-The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This file contains the description of my ALU entity, which has five signals:
-\begin{enumerate}
-\item alu_in_a, which henceforth will be referred to as $A$.
-\item alu_in_b, which henceforth will be referred to as $B$.
-\item alu_in_funct, which henceforth will be referred to as $F$.
-\item alu_out, which henceforth will be referred to as $O$.
-\item alu_status, which henceforth will be referred to as $S$.
+The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This file contains the description of my ALU entity, which the following five signals.
+
+\begin{enumerate} 
+\item alu\_in\_a, which henceforth will be referred to as $A$.
+\item alu\_in\_b, which henceforth will be referred to as $B$.
+\item alu\_in\_funct, which henceforth will be referred to as $F$.
+\item alu\_out, which henceforth will be referred to as $O$.
+\item alu\_status, which henceforth will be referred to as $S$.
 \end{enumerate}
+
 Signals $A$, $B$ and $F$ are input signals, while $O$ and $S$ are output signals. $A$ and $B$ contains the function operands, $F$ is used for deciding which operation to perform, $O$ stores the result, and $S$ stores the status flag as described in \autoref{flags}.
 
 \paragraph{Supported Operations}
@@ -53,6 +55,7 @@ The functions my ALU ended up supporting are listed in \autoref{functions}. The 
     arithmetic left shift  & 0x9 \\ \hline
     logical right shift    & 0xA \\ \hline
     arithmetic right shift & 0xB \\ \hline
+
   \end{tabular}
   \caption{Supported functions. The \emph{Function Code} column describes the value of $F$ required to perform the calculation indicated in column \emph{Function}}
   \label{functions}
