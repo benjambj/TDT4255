@@ -1,4 +1,5 @@
 \documentclass{article}
+\usepackage{graphicx}
 \usepackage[colorlinks=true]{hyperref}
 \usepackage[all]{hypcap}
 \title{Exercise 1 - Report}
@@ -15,8 +16,8 @@ Our task was to implement a combinatorial ALU in VHDL. It was to support some ba
 
 We were also to perform three kinds of tests to make sure our design worked:
 \begin{description}
-\item[Functionality Simulation] Through the use of ModelSIM, we were to assess our VHDL design's functionality. This was to be done by creating a VHDL test bench, and checking whether the output signals were what was expected.
-\item[Timing Simulation] Using ModelSIM, we were also to determine any timing constraints on our modelled system.
+\item[Functionality Simulation] Through the use of Modelsim, we were to assess our VHDL design's functionality. This was to be done by creating a VHDL test bench, and checking whether the output signals were what was expected.
+\item[Timing Simulation] Using Modelsim, we were also to determine any timing constraints on our modelled system.
 \item[FPGA Functionality Tests] We were also to test that our code, once uploaded onto the FPGA, did what it was supposed to do on the chip. We were to do this by communicating with a C driver program, which mapped our input values onto the ALU and sent back its output signals.
 \end{description}
 
@@ -105,12 +106,20 @@ There is no status flag calculation logic contained in the shifter components; t
 
 \section{Result}
 \label{sec:result}
-I think what I ended up doing, and what tests were done should go here.
+BLablabla
 \subsection{Tests of the Implementation}
 \label{subsec:tests}
-
+The ALU I created was tested thrice. First, it went through a functionality simulation test, made to root out any logical errors in the VHDL wiring of the ALU. Then, I performed a timing simulation, in order to view the different combinatorial delays in my design and hopefully root out any potential problems. Finally, I performed tests of completed embedded system uploaded to the FPGA. 
 \subsubsection{Functionality Simulation}
 \label{subsubsec:funcsim}
+The functionality simulation was done with the program Modelsim. A VHDL test bench\footnote{The testbench file is enclosed, and is named \emph{alu\_tb.vhd}} was created for driving the input signals of my ALU component to different values, and then checking in Modelsim whether $O$ and $S$ were assigned the expected values. In the test bench, $A$ and $B$ are set for 50 ns at a time, and this makes up a test case. Every test case is commented with the expected value of both $O$ and $S$. Checks for functional consistency were then manually performed by looking at the ALU output signals' values (see \autoref{fig:funcsim_shift_carry}), and then checking whether they matched the comments for the given test case or not. 
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.5, bb=0 0 400 200]{figures/func_sim_wave_shift_carry_test.png}
+  \caption{\label{fig:funcsim_shift_carry} Testing function 0b1000 = 0x8 = logical left shift}
+\end{figure}
+
+These simulations ended in success. I was able to satisfy the expected output of the specified test cases.
 
 \subsubsection{Timing Simulation}
 \label{subsubsec:timingsim}
