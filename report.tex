@@ -35,8 +35,8 @@ The VHDL implementation of my solution is given in the file \emph{alu.vhd}. This
 
 Signals $A$, $B$ and $F$ are input signals, while $O$ and $S$ are output signals. $A$ and $B$ contains the function operands, $F$ is used for deciding which operation to perform, $O$ stores the result, and $S$ stores the status flag as described in \autoref{flags}.
 
-\paragraph{Supported Operations}
-\label{ops}
+\subsection{Supported Operations}
+\label{subsec:ops}
 The functions my ALU ended up supporting are listed in \autoref{tab:functions}. The gap between multiplication and nor results from an unimplemented division function, which was supposed to have function code $0x3$. The code values have been grouped together in logical groups for ease of remembrance, and not through some clever scheme to reduce circuit logic. Most functions are commutative; the only exceptions to this are the shift operators, in which $A$ contains the operand to shift and $B$ contains the shift amount.
 
 \begin{table}[htbp]
@@ -61,8 +61,8 @@ The functions my ALU ended up supporting are listed in \autoref{tab:functions}. 
   \label{tab:functions}
 \end{table}
 
-\paragraph{Status Flags}
-\label{flags}
+\subsection{Status Flags}
+\label{subsec:flags}
 The ALU's different status flags are listed in \autoref{tab:flags}. They have been cleverly defined as different powers of two so that they can be or'ed together to perform conjunction of statuses. Thus, I shall use the phrase `the status flag is set to \emph{\textless{}flag name\textgreater{}}' to mean `$S \& \emph{\textless{}corresponding code\textgreater{}} \neq 0$'
 \begin{table}[htbp]
   \centering
@@ -88,7 +88,20 @@ their semantics are defined as follows:
 
 \subsection{The Barrel Shifter}
 \label{subsec:barrelshifter}
+The ALU does its barrel shifting by delegating its work to two barrel shifter components---one shifts left, the other one shifts right. The shifting is done whether the function we actually want to perform is a shift or not, and in the event that it actually is we map the corresponding component's output to our ALU output and calculate the status flags. 
 
+Both components have the same structure, with four different signals:
+\begin{itemize}
+\item data\_in, henceforth called $D$, gives the operand to shift.
+\item shift\_amount, henceforth called $SH$, gives the amount by which to shift $D$.
+\item data\_out\_unsigned, henceforth called $OU$, stores the result of a logical shift.
+\item data\_out\_signed, henceforth called $OS$, stores the result of an arithmetic shift.
+\end{itemize}
+As you can see, the components perform both a logical and an arithmetic shift simultaneously. This choice of organization is arbitrary; the operations could just as well have been split into a signed and an unsigned shifter; one large shifter; or four small ones. 
+
+The functions are performed by mapping to the predefined VHDL functions $shl$ and $shr$ for the left- and right-shifter, respectively. These are overloaded on signed and unsigned operands, and depending on what their input is will perform either an arithmetic shift or a logical shift. Please see the enclosed source files barrel_shift_left.vhd and barrel_shift_right.vhd for more details. 
+
+There is no status flag calculation logic contained in the shifter components; this is done in the ALU. This choice is deliberate, as it would feel artificial for an independent barrel shifter to include an ALU-specific output. The necessary calculations described in \autoref{subsec:flags} might just as easily be done in the ALU, anyways. Another reason for not performing them in the shifters is that the functionality is implemented through predefined functions, which yield no possibility for doing these calculations efficiently here anyways. If the shifter was on our critical path, swapping to a self-written shifter function might've been worth considering. This would yield more control over transitionary states, and we could've used this for generating the status flags, but it would also break the independency between the shifter and the ALU . As the tests in \autoref{timingsim} show, however, the shifter is not much of a concern, and thus I saw no reason for tarnishing the relatively clean interface of the shifters with a status signal.
 
 \section{Result}
 \label{sec:result}
@@ -111,6 +124,7 @@ I think what I ended up doing, and what tests were done should go here.
 
 \subsection{Reusability}
 \label{subsec:reusability}
+Barrel shifter without status flag; other than that, not very much for which the issue makes sense to discuss (I think?).
 
 \section{Discussion}
 \label{sec:discussion}
