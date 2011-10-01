@@ -2,12 +2,32 @@
 \title{Exercise 1 - Report}
 \author{Benjamin Bj\o rnseth}
 \begin{document}
-\maketitle
+\maketitle 
 \begin{abstract}
-Some motivation here\ldots In this exercise\ldots 
+In this exercise, our task was to make a small combinatorial ALU. I made one which ended up supporting a small amount of basic arithmetic and logical operations, and which sets status flags according to the calculation's results. It includes a barrel shifter, which supports both arithmetic and logical shifts left and right. Functions that were not implemented include rotating and unsigned arithmetic.
 \end{abstract}
-\section{Implementation of the ALU}
+
+\section{Introduction}
+\label{sec:introduction}
+Our task was to implemented a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. It was also to include a barrel shifter as a component. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to contain an output register for storing our status, but what values this could assume and what it would mean was left for us to define. The ALU would then be integerated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
+
+We were also to perform three kinds of tests to make sure our design worked:
+\begin{description}
+\item[Functionality Simulation] Through the use of ModelSIM, we were to assess our VHDL design's functionality. This was to be done by creating a VHDL test bench, and checking whether the output signals were what was expected.
+\item[Timing Simulation] Using ModelSIM, we were also to determine any timing constraints on our modelled system.
+\item[FPGA Functionality Tests] We were also to test that our code, once uploaded onto the FPGA, did what it was supposed to do on the chip. We were to do this by communicating with a C driver program, which mapped our input values onto the ALU and sent back its output signals.
+\end{description}
+
+As I had not had any prior exposure neither to VHDL nor embedded systems programming, this task was not easy to come to grips with. I had, however, some experience from the first assignment given to us, and so I used this as a starting point to try figuring out how I was supposed to go about implementing this ALU. Apart from a few `must have' instructions, namely add and subtract, the final selection of supported functions was reached through an incremental approach. Basically, a function was implemented, tested, corrected, and then a new one was written. The carry flags were decided upon with guidance from the compendium; their semantics, however, were decided upon after rather careful consideration of the supported functions' semantics. 
+
+\section{Solution}
+\label{sec:solution}
+I think what I want to do should go here
+\subsection{Implementation of the ALU}
 \label{sec:implementation}
+
+\paragraph{Supported Operations}
+\label{ops}
 
 \paragraph{Status Flags}
 \label{flags}
@@ -22,40 +42,55 @@ We have four flags, pos 0, 1, 2, 3:
 \item  For arithmetic right shift, it isn't valid.
 \end{itemize}
 \item[C (Carry):] Valid for unsigned calculations only. Tells whether the result generated a final bit out of its calculation
-Three cases:
 \begin{itemize}
-\item Add: 33rd bit
-\item Left logical shift: If last bit shifted out was 1
-\item Right logical shift: If last bit shifted out was 1
+\item Logical left shift
+\item Logical right shift
+\item Unsigned arithmetic..?
 \end{itemize}
-Multiplication described in \ref{subsec:limitations}
+
+Multiplication issues described in \ref{subsec:limitations}
 \end{description}
 
 
 
-\subsection{The Barrel Shifter}
-\label{subsec:barrelshifter}
+\subsubsection{The Barrel Shifter}
+\label{subsubsec:barrelshifter}
 
-\subsection{Design Limitations}
+\subsubsection{Design Limitations}
 \label{subsec:limitations}
 
-\subsection{Reusability}
+\subsubsection{Reusability}
 \label{subsec:reusability}
 
 
 
 
 
-\section{Tests of the Implementation}
+\subsection{Tests of the Implementation}
 \label{sec:tests}
 
-\subsection{Functionality Simulation}
+\subsubsection{Functionality Simulation}
 \label{subsec:funcsim}
 
-\subsection{Timing Simulation}
+\subsubsection{Timing Simulation}
 \label{subsec:timingsim}
 
-\subsection{Functionality Tests on the FPGA}
+\subsubsection{Functionality Tests on the FPGA}
 \label{subsec:funcfpga}
+
+\section{Result}
+\label{sec:result}
+I think what I ended up doing, and what tests were done should go here.
+
+\section{Discussion}
+\label{sec:discussion}
+Discussion of what went well, and what could've been done better. Things I might have thought about, and things I could have implemented.
+
+\section{Conclusion}
+\label{sec:conclusion}
+Round-up of sorts. Future work?
+
+
+
 
 \end{document}
