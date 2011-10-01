@@ -37,7 +37,7 @@ Signals $A$, $B$ and $F$ are input signals, while $O$ and $S$ are output signals
 
 \paragraph{Supported Operations}
 \label{ops}
-The functions my ALU ended up supporting are listed in \autoref{functions}. The gap between multiplication and nor results from an unimplemented division function, which was supposed to have function code $0x3$. The code values have been grouped together in logical groups for ease of remembrance, and not through some clever scheme to reduce circuit logic.
+The functions my ALU ended up supporting are listed in \autoref{tab:functions}. The gap between multiplication and nor results from an unimplemented division function, which was supposed to have function code $0x3$. The code values have been grouped together in logical groups for ease of remembrance, and not through some clever scheme to reduce circuit logic. Most functions are commutative; the only exceptions to this are the shift operators, in which $A$ contains the operand to shift and $B$ contains the shift amount.
 
 \begin{table}[htbp]
   \centering
@@ -58,35 +58,36 @@ The functions my ALU ended up supporting are listed in \autoref{functions}. The 
 
   \end{tabular}
   \caption{Supported functions. The \emph{Function Code} column describes the value of $F$ required to perform the calculation indicated in column \emph{Function}}
-  \label{functions}
+  \label{tab:functions}
 \end{table}
 
 \paragraph{Status Flags}
 \label{flags}
-We have four flags, pos 0, 1, 2, 3:
-\begin{description}
-\item[Z (Zero):] Set to 1 if the ALU result is zero
-\item[N (Negative):] Set to 1 if the ALU result is negative
-\item[V (Overflow):] Valid for signed calculations only. Tells whether the result of the computation was too big to store in 31 bits, and whether the calculation wrapped around or not. We have three cases:
+The ALU's different status flags are listed in \autoref{tab:flags}. They have been cleverly defined as different powers of two so that they can be or'ed together to perform conjunction of statuses. Thus, I shall use the phrase `the status flag is set to \emph{\textless{}flag name\textgreater{}}' to mean `$S \& \emph{\textless{}corresponding code\textgreater{}} \neq 0$'
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|l|l|}
+    \hline
+    \textbf{Flag name} & \textbf{Code} \\ \hline
+    Zero     & 0x1 \\ \hline
+    Negative & 0x2 \\ \hline
+    Overflow & 0x4 \\ \hline
+    Carry    & 0x8 \\ \hline
+  \end{tabular}
+  \caption{ALU status flags}
+  \label{tab:flags}
+\end{table}
+
+their semantics are defined as follows:
 \begin{itemize}
-\item For addition and subtraction, it works blalbala
-\item For left arithmetic shifts it is set if the result is negative while the input was positive, or vice versa. If the calculation wraps around without changing the sign, it is deemed as not being a problem with the signed interpretation, and as such overflow is not set.
-\item  For arithmetic right shift, it isn't valid.
+\item The `Zero' flag is set whenever $O = 0$.
+\item The `Negative' flag is set when the operation just performed is of such a nature that a result should be interpreted as a signed number, and when $O < 0$. In particular, it can be set after addition, subtraction, multiplication and arithmetic shifts, but not after the logic operations.
+\item The `Overflow' flag is also used for signed calculations, and is set whenever the finiteness of the result register causes $O$ to unexpectedly change sign\footnote{The exception to this is multiplication, which does not trigger overflow even though it is a signed arithmetic operation. The reason for this is that multiplication is already so severely limited in my implementation that reporting overflow would hardly matter. For more details, see \autoref{subsec:limitations}.}. Speficially, it may be set after addition, subtraction and arithmetic left shift\footnote{Arithmetic right shifts will never overflow, as they use sign extension; see \autoref{subsec:barrelshifter}}. For addition, overflow is set~$\iff~sign(A)=sign(B)\wedge{}sign(A)\neq{}sign(O)$. As subtraction is addition of a negative number, the previous equation holds with $sign(A)=sign(B)$ replaced with $sign(A)\neq{}sign(B)$. For arithmetic left shifts, the overflow flag is set if $O$ has a different sign from $A$. If the calculation does not change the sign, shifting bits out of $A$ is deemed as not being a problem with the signed interpretation, and as such overflow is not set.
+\item The `Carry' flag is used for extending the result register on unsigned calculations. For my chosen set of instructions, this is only necessary for logical left/right shifts. In these cases, the carry bit is set to the last bit shifted out.
 \end{itemize}
-\item[C (Carry):] Valid for unsigned calculations only. Tells whether the result generated a final bit out of its calculation
-\begin{itemize}
-\item Logical left shift
-\item Logical right shift
-\item Unsigned arithmetic..?
-\end{itemize}
-
-Multiplication issues described in \ref{subsec:limitations}
-\end{description}
-
-
 
 \subsection{The Barrel Shifter}
-\label{subsubsec:barrelshifter}
+\label{subsec:barrelshifter}
 
 
 \section{Result}
