@@ -126,18 +126,41 @@ These simulations ended in success. I was able to satisfy the expected output of
 
 \subsubsection{Functionality Tests on the FPGA}
 \label{subsubsec:funcfpga}
-
+Having compiled and uploaded the project onto the FPGA, I used the python script \emph{run\_tests.py}\footnote{This script is an altered version of the \emph{host.py} script which was provided. Instead of requiring test data as command line parameters, it reads it in from the file \emph{test\_data.txt}} to ensure that everyting was functioning properly. As all the tests passed without errors, I concluded that the ALU did indeed work in a real environment as well.
 \subsection{Design Limitations}
 \label{subsec:limitations}
+
 \paragraph{Multiplication}
+With only a single 32-bit register for our result, multiplication of two 32-bit numbers is limited to the bottom half of the 64-bit result. As such, the multiplication implementation in my ALU must be used with care. 
+
+The issue arises, then, whether or not the ALU should report any such problems through the status flags. This might be warranted, so that users could just light-headedly multiply and just check afterwards if something went wrong. However, as was seen in \autoref{subsubsec:timingsim}, we also have that multiplication is the main bottleneck of the ALU. Deciding whether or not the result is bigger than 32 bits adds more logic inbetween the multiplication result and the ALU result, thus further increasing the length of the critical path. The effect of this is quite clear, comparing the two estimated path delays in \autoref{fig:with_carry} and \autoref{fig:without_carry}.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.5]{figures/with_carry_check.png}
+  \caption{The path delay with carry checks}
+  \label{fig:with_carry}
+\end{figure}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.5]{figures/without_carry_check.png}
+  \caption{The path delay without carry checks}
+  \label{fig:without_carry}
+\end{figure} 
+In order to save this time, and because users have to be careful with multiplication anyways, I decided on not reporting it. As a consequence of this, I also felt that I shouldn't report an unexpected sign in the result---this wouldn't save any time, as comparing the previous figures to \autoref{fig:without_overflow} shows, but it might confuse users that results too big to fit were reported in only 50\%\footnote{Half the numbers $\geq 2^{32}$ will have the 32nd bit set, and the other half will not.} of the cases. For the sake of consistency\footnote{On the topic of consistency, this is the reason zero and negative are kept. These status flags have less varying semantics across instructions, and as their cost is low it would be strange not to implement them.}, then, I chose not to report it at all.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[scale=0.5]{figures/without_overflow_check.png}
+  \caption{The path delay with neither carry nor overflow checks}
+  \label{fig:without_overflow}
+\end{figure}
 
 \subsection{Reusability}
 \label{subsec:reusability}
-Barrel shifter without status flag; other than that, not very much for which the issue makes sense to discuss (I think?).
+
 
 \section{Discussion}
 \label{sec:discussion}
-Discussion of what went well, and what could've been done better. Things I might have thought about, and things I could have implemented. Maybe include focus and time lost on understanding our implementation tools, which resulted in less consideration left for e.g. function value => function mapping, supported functions, status flags etc.
+Discussion of what went well, and what could've been done better. Things I might have thought about, and things I could have implemented. Maybe include focus and time lost on understanding our implementation tools, which resulted in less consideration left for e.g. function value =\textless function mapping, supported functions, status flags etc.
 
 \section{Conclusion}
 \label{sec:conclusion}
