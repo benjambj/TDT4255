@@ -121,8 +121,6 @@ The functionality simulation was done with the program Modelsim. A VHDL test ben
 
 These simulations ended in success. I was able to satisfy the expected output of the specified test cases.
 
-\subsubsection{Timing Simulation}
-\label{subsubsec:timingsim}
 
 \subsubsection{Functionality Tests on the FPGA}
 \label{subsubsec:funcfpga}
@@ -161,15 +159,20 @@ Of my design, the most reusable pieces are the barrel shifters. As explained in 
 
 \section{Discussion}
 \label{sec:discussion}
-The ALU that was produced does what it is meant to do, though little (if anything) more. It includes a basic number of arithmetic and logical functions, as well as barrel shifting functionality. As there is a vast amount of issues one could consider when implementing an ALU, I was forced to choose something that could be done with the amount of time I had available. Thus, more advanced instructions like division and floating-point arithmetic were dropped, as was the planned support for unsigned arithmetic. I spent quite some time on certain design issues like status flag semantics, while others weren't taken into heavy consideration---which function codes should map to which functions to reduce circuitry, for instance. 
+The ALU that was produced does what it is meant to do, though little (if anything) more. It includes a basic number of arithmetic and logical functions, as well as barrel shifting functionality. As there is a vast amount of issues one could consider when implementing an ALU, I was forced to choose something that could be done with the amount of time I had available. 
+
+Thus, more advanced instructions like division and floating-point arithmetic were not included. This was, however, expected---I never planned on implementing those. Something I had planned to support, though, was unsigned arithmetic. This would've been a natural extension of the current selection of instructions, and one could say that it would've tested my choices on status flag definitions in a good way. With more time, this should've been considered.
+
+Another issue which would've deserved some more attention is which function codes should map to which functions. These choices are important with regards to ease of invocation, parsing as well as reduction of necessary circuitry. I decided upon a scheme based on what would make them easy to remember---clearly not the optimal choice. Spending some more time with this would've been a nice investment.
+
+The status flag definitions was something I spent a quite some time pondering about, trying to make them as consistent in behaviour across instructions as possible. With more time, I would have liked to look at it even more thoroughly---for instance, how well it conforms to already existing standards, how my choice would work with other kinds of instructions, and so on.
+
+Adding multiplication to the instruction set turned out to be a double-edged sword. On one hand, it was a practical instruction which seemed very worth having. On the other hand, it was also the most time-consuming instruction, having almost 18 nanoseconds of logical delay alone. In the end, I decided that this was too fundamental an instruction to remove. There was also not a lot of instantaneous gain from removing multiplication, as the next-highest delay time was at 20 nanoseconds REFERENCE HERE. In this delay, however, 75\% was routing delay, which probably would've been easier to try adjusting. I didn't have time for that, though, thus my decision. This is another point which I would've liked to investigate further. 
 
 In the end, the ALU ended up quite small in scale---more so than I had hoped for. The main reason for this was that a lot of time was spent figuring out the tools with which we were to implement and test our solution. Had I been more thoroughly prepared, this would've been less of a time sink, and some of the issues I would have wanted to look at might've been attended to.
 
 \section{Conclusion}
 \label{sec:conclusion}
-Round-up of sorts. Future work?
-
-
-
+In this task, I implemented a small, but fully functional ALU, with well-defined status flags. It could have been more comprehensive, but the chosen subset of issues to handle had to be small as understanding the tools turned out to be time-consuming.
 
 \end{document}
