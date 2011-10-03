@@ -12,12 +12,11 @@ In this exercise, our task was to make a small combinatorial ALU. I made one whi
 
 \section{Introduction}
 \label{sec:introduction}
-Our task was to implement a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to include a barrel shifter as a component, as well as a register for storing our status. What values this register could assume after an instruction was performed and what it would mean was left for us to define. The ALU would then be integerated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
+Our task was to implement a combinatorial ALU in VHDL. It was to support some basic binary calculations, although it was not specified which were needed. This meant that we had to decide upon a subset of the different plausible functions we could implement, and also determine a mapping from the binary value in our function input signal to the calculation performed. Our ALU was also to include a barrel shifter as a component, as well as a register for storing our status. What values this register could assume after an instruction was performed and what it would mean was left for us to define. The ALU would then be integrated as a peripheral in an embedded system, which was to be uploaded on an FPGA \footnote{The FPGA was from the Spartan 6 family, contained on an Avnet S6LX16 development board}. 
 
-We were also to perform three kinds of tests to make sure our design worked:
+We were also to perform two kinds of tests to make sure our design worked:
 \begin{description}
-\item[Functionality Simulation] Through the use of Modelsim, we were to assess our VHDL design's functionality. This was to be done by creating a VHDL test bench, and checking whether the output signals were what was expected.
-\item[Timing Simulation] Using Modelsim, we were also to determine any timing constraints on our modelled system.
+\item[Functionality Simulation] Through the use of Modelsim, we were to assess our VHDL design's functionality. This was to be done by creating a VHDL test bench, and checking whether the output signals were as expected.
 \item[FPGA Functionality Tests] We were also to test that our code, once uploaded onto the FPGA, did what it was supposed to do on the chip. We were to do this by communicating with a C driver program, which mapped our input values onto the ALU and sent back its output signals.
 \end{description}
 
@@ -89,27 +88,26 @@ Their semantics are defined as follows:
 
 \subsection{The Barrel Shifter}
 \label{subsec:barrelshifter}
-The ALU does its barrel shifting by delegating its work to two barrel shifter components---one shifts left, the other one shifts right. The shifting is done whether the function we actually want to perform is a shift or not, and in the event that it actually is we map the corresponding component's output to our ALU output and calculate the status flags. 
+The ALU does its barrel shifting by delegating its work to two barrel shifter components---one shifts left, the other one shifts right. This choice of organization is arbitrary; the operations could just as well have been split into a signed and an unsigned shifter; one large shifter; or four small ones. The shifting is done whether the function we actually want to perform is a shift or not, and in the event that it actually is we map the corresponding component's output to our ALU output and calculate the status flags. 
 
 Both components have the same structure, with four different signals:
 \begin{itemize}
 \item data\_in gives the operand to shift.
-\item shift\_amount gives the amount by which to shift $D$.
+\item shift\_amount gives the amount by which to shift data\_in..
 \item data\_out\_unsigned stores the result of a logical shift.
 \item data\_out\_signed stores the result of an arithmetic shift.
 \end{itemize}
-As you can see, the components perform both a logical and an arithmetic shift simultaneously. This choice of organization is arbitrary; the operations could just as well have been split into a signed and an unsigned shifter; one large shifter; or four small ones. 
 
 The functions are performed by using the predefined VHDL functions $shl$ and $shr$ for the left- and right-shifter, respectively. These are overloaded on signed and unsigned operands, and depending on what their input is will perform either an arithmetic shift or a logical shift. Please see the enclosed source files \emph{barrel\_shift\_left.vhd} and \emph{barrel\_shift\_right.vhd} for more details. 
 
-There is no status flag calculation logic contained in the shifter components; this is done in the ALU. This choice is deliberate, as it would feel artificial for an independent barrel shifter to include an ALU-specific output. The necessary calculations described in \autoref{subsec:flags} might just as easily be done in the ALU, anyways. Another reason for not performing them in the shifters is that the functionality is implemented through predefined functions, yielding no  possibility for doing these calculations more efficiently in the shifter anyways. If the shifter was on our critical path, swapping to a self-written shifter function might've been worth considering. This would yield more control over transitionary states, and we could've used this for generating the status flags---but it would also break the independency between the shifter and the ALU . As the numbers in REFERENCE HERE, however, the shifter logic is not much of a concern timing-wise, and thus I saw no reason for tarnishing the relatively clean interface of the shifters with a status signal.
+There is no status flag calculation logic contained in the shifter components; this is done in the ALU. This choice is deliberate, as it would feel artificial for an independent barrel shifter to include an ALU-specific output. The necessary calculations described in \autoref{subsec:flags} might just as easily be done in the ALU, anyways. Another reason for not performing them in the shifters is that the functionality is implemented through predefined functions, yielding no  possibility for doing these calculations more efficiently in the shifter anyways. If the shifter was on our critical path, swapping to a self-written shifter function might have been worth considering. This would yield more control over transitionary states, and we could have used this for generating the status flags---but it would also break the independency between the shifter and the ALU . As explained in \autoref{subsec:limitations}, however, the shifter logic is not the biggest problem timing-wise, and thus I saw no reason for tarnishing the relatively clean interface of the shifters with a status signal.
 
 \section{Result}
 \label{sec:result}
-BLablabla
+
 \subsection{Tests of the Implementation}
 \label{subsec:tests}
-The ALU I created was tested thrice. First, it went through a functionality simulation test, made to root out any logical errors in the VHDL wiring of the ALU. Then, I performed a timing simulation, in order to view the different combinatorial delays in my design and hopefully root out any potential problems. Finally, I performed tests of completed embedded system uploaded to the FPGA. 
+The ALU I created was tested twice. First, it went through a functionality simulation test, made to root out any logical errors in the VHDL wiring of the ALU. Afterwards, I performed tests of the completed embedded system uploaded to the FPGA to make sure that the connection with the embedded system was set up correctly. 
 \subsubsection{Functionality Simulation}
 \label{subsubsec:funcsim}
 The functionality simulation was done with the program Modelsim. A VHDL test bench\footnote{The testbench file is enclosed, and is named \emph{alu\_tb.vhd}} was created for driving the input signals of my ALU component to different values, and then checking in Modelsim whether $O$ and $S$ were assigned the expected values. In the test bench, $A$ and $B$ are set for 50 ns at a time, and this makes up a test case. Every test case is commented with the expected value of both $O$ and $S$. Checks for functional consistency were then manually performed by looking at the ALU output signals' values (see \autoref{fig:funcsim_shift_carry}), and then checking whether they matched the comments for the given test case or not. 
@@ -123,52 +121,52 @@ These simulations ended in success. I was able to satisfy the expected output of
 
 \subsubsection{Functionality Tests on the FPGA}
 \label{subsubsec:funcfpga}
-Having compiled and uploaded the project onto the FPGA, I used the python script \emph{run\_tests.py}\footnote{This script is an altered version of the \emph{host.py} script which was provided. Instead of requiring test data as command line parameters, it reads it in from the file \emph{test\_data.txt}} to ensure that everyting was functioning properly. As all the tests passed without errors, I concluded that the ALU did indeed work in a real environment as well.
+Having compiled and uploaded the project onto the FPGA, I used the python script \emph{run\_tests.py}\footnote{This script is an altered version of the \emph{host.py} script which was provided. Instead of requiring test data as command line parameters, it reads it in from the file \emph{test\_data.txt}. See the file itself for more details.} to ensure that everyting was functioning properly. As all the tests passed without errors, I concluded that the ALU did indeed work in a real environment as well.
 \subsection{Design Limitations}
 \label{subsec:limitations}
 
 \paragraph{Multiplication}
 With only a single 32-bit register for our result, multiplication of two 32-bit numbers is limited to the bottom half of the 64-bit result. As such, the multiplication implementation in my ALU must be used with care. 
 
-The issue arises, then, whether or not the ALU should report any such problems through the status flags. This might be warranted, so that users could just light-headedly multiply and just check afterwards if something went wrong. However, REFERENCE HERE we also have that multiplication is the main bottleneck of the ALU. Deciding whether or not the result is bigger than 32 bits adds more logic inbetween the multiplication result and the ALU result, thus further increasing the length of the critical path. The effect of this is quite clear, comparing the two estimated path delays in \autoref{fig:with_carry} and \autoref{fig:without_carry}.
+The issue arises, then, whether or not the ALU should report any such problems through the status flags. This might be warranted, so that users could just light-headedly multiply and just check afterwards if something went wrong. However, we also have that multiplication is the main bottleneck of the ALU\footnote{This is seen in the enclosed document \emph{final\_timing\_report.pdf}, where the critical path is described.}. Deciding whether or not the result is bigger than 32 bits adds more logic inbetween the multiplication result and the ALU status, thus further increasing the length of the critical path. The effect of this is seen quite clearly by comparing the two estimated path delays in \autoref{fig:with_carry} and \autoref{fig:without_carry}.
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=0.5]{figures/with_carry_check.png}
+  \includegraphics[scale=0.4]{figures/with_carry_check.png}
   \caption{The path delay with carry checks}
   \label{fig:with_carry}
 \end{figure}
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=0.5]{figures/without_carry_check.png}
+  \includegraphics[scale=0.4]{figures/without_carry_check.png}
   \caption{The path delay without carry checks}
   \label{fig:without_carry}
 \end{figure} 
-In order to save this time, and because users have to be careful with multiplication anyways, I decided on not reporting it. As a consequence of this, I also felt that I shouldn't report an unexpected sign in the result---this wouldn't save any time, as comparing the previous figures to \autoref{fig:without_overflow} shows, but it might confuse users that results too big to fit were reported in only 50\%\footnote{Half the numbers $\geq 2^{32}$ will have the 32nd bit set, and the other half will not.} of the cases. For the sake of consistency\footnote{On the topic of consistency, this is the reason zero and negative are kept. These status flags have less varying semantics across instructions, and as their cost is low it would be strange not to implement them.}, then, I chose not to report it at all.
+In order to keep the critical path length low, and because users have to be careful with multiplication anyways, I decided on not reporting any result size problems. As a consequence of this, I also felt that I should not report an unexpected sign in the result. Doing this would not save any time, as comparing the previous figures to \autoref{fig:without_overflow} shows, but it might confuse users that results too big to fit were reported in only 50\%\footnote{Half the numbers $\geq 2^{32}$ will have the 32nd bit set, and the other half will not.} of the cases. For the sake of consistency\footnote{On the topic of consistency, this is the reason zero and negative are kept. These status flags have less varying semantics across instructions, and as their cost is low it would be strange not to implement them.}, I therefore chose not to report it at all.
 \begin{figure}[htbp]
   \centering
-  \includegraphics[scale=0.5]{figures/without_overflow_check.png}
+  \includegraphics[scale=0.4]{figures/without_overflow_check.png}
   \caption{The path delay with neither carry nor overflow checks}
   \label{fig:without_overflow}
 \end{figure}
 
 \subsection{Reusability}
 \label{subsec:reusability}
-Of my design, the most reusable pieces are the barrel shifters. As explained in \autoref{subsec:barrelshifter}, status flag calculation was kept out of them so as to not bog them down with functionality that might not be needed by other components. They were, however, not made generic in size; You can only use them for 32-bit shifts. There is little else of the design which is easily reusable---you could always copy-paste some pieces of logic in the code, but it is all tied down to the {\em alu.vhd} file. Of course, the ALU itself can be put to use in systems other than the one created in the exercise.
+Of my design, the most reusable pieces are the barrel shifters. As explained in \autoref{subsec:barrelshifter}, status flag calculation was kept out of them so as to not bog them down with functionality that might not be needed by other components. They were, however, not made generic in size; You can only use them for 32-bit shifts. There is little else of the design which is easily reusable---you could always copy-paste some pieces of logic in the code, but it is all tied down to the {\em alu.vhd} file. Of course, the ALU itself can be put to use in systems other than the one created in the exercise, and is as such a reusable component.
 
 \section{Discussion}
 \label{sec:discussion}
-The ALU that was produced does what it is meant to do, though little (if anything) more. It includes a basic number of arithmetic and logical functions, as well as barrel shifting functionality. As there is a vast amount of issues one could consider when implementing an ALU, I was forced to choose something that could be done with the amount of time I had available. 
+The ALU that was produced does what it is meant to do, though little (if anything) more. It includes a basic number of arithmetic and logical functions, as well as barrel shifting functionality. As there is a vast amount of issues one could consider when implementing an ALU, I was forced to choose something that could be done with the amount of time I had available. Thus, more advanced instructions like division and floating-point arithmetic were not included. This was, however, expected---I never planned on implementing those. 
 
-Thus, more advanced instructions like division and floating-point arithmetic were not included. This was, however, expected---I never planned on implementing those. Something I had planned to support, though, was unsigned arithmetic. This would've been a natural extension of the current selection of instructions, and one could say that it would've tested my choices on status flag definitions in a good way. With more time, this should've been considered.
+Something I had planned on supporting, though, was unsigned arithmetic. This would have been a natural extension of the current selection of instructions, and it would have been a further test of my choices on status flag definitions. With more time, this should have been considered.
 
-Another issue which would've deserved some more attention is which function codes should map to which functions. These choices are important with regards to ease of invocation, parsing as well as reduction of necessary circuitry. I decided upon a scheme based on what would make them easy to remember---clearly not the optimal choice. Spending some more time with this would've been a nice investment.
+Another issue which would have deserved some more attention is which function codes should map to which functions. These choices are important with regards to ease of invocation, parsing as well as reduction of necessary circuitry. I decided upon a scheme based on what would make them easy to remember---clearly not the optimal choice. Spending some more time with this would have been a nice investment.
 
 The status flag definitions was something I spent a quite some time pondering about, trying to make them as consistent in behaviour across instructions as possible. With more time, I would have liked to look at it even more thoroughly---for instance, how well it conforms to already existing standards, how my choice would work with other kinds of instructions, and so on.
 
-Adding multiplication to the instruction set turned out to be a double-edged sword. On one hand, it was a practical instruction which seemed very worth having. On the other hand, it was also the most time-consuming instruction, having almost 18 nanoseconds of logical delay alone. In the end, I decided that this was too fundamental an instruction to remove. There was also not a lot of instantaneous gain from removing multiplication, as the next-highest delay time was at 20 nanoseconds REFERENCE HERE. In this delay, however, 75\% was routing delay, which probably would've been easier to try adjusting. I didn't have time for that, though, thus my decision. This is another point which I would've liked to investigate further. 
+Adding multiplication to the instruction set turned out to be a double-edged sword. On one hand, it is a practical instruction which seems very worth having. On the other hand, it is also my most time-consuming instruction, having almost 18 nanoseconds of logical delay alone\footnote{The timing information in this paragraph is due to the files \emph{final\_timing\_report.pdf}, which is the timing report for my final design, and \emph{timing\_report\_without\_multiplication.pdf}, which illustrates the result of removing multiplication. The files are contained in the delivery.}. In the end, I decided that this was too fundamental an instruction to remove. There was also not a lot of instantaneous gain from removing multiplication, as the next-highest delay time was at 20 nanoseconds. In this delay, however, 75\% was due to routing of signals, which probably would have been easier to try adjusting. I did not have time for that, though, and so I decided to keep multiplication. This is another point which I would have liked to investigate further. 
 
-In the end, the ALU ended up quite small in scale---more so than I had hoped for. The main reason for this was that a lot of time was spent figuring out the tools with which we were to implement and test our solution. Had I been more thoroughly prepared, this would've been less of a time sink, and some of the issues I would have wanted to look at might've been attended to.
+In the end, the ALU ended up quite small in scale---more so than I had hoped for. The main reason for this was that a lot of time was spent figuring out the tools with which we were to implement and test our solution. Had I been more thoroughly prepared, this would have been less of a time sink, and some of the issues I would have wanted to look at might have been attended to.
 \section{Conclusion}
 \label{sec:conclusion}
-In this task, I implemented a small, but fully functional ALU, with well-defined status flags. It could have been more comprehensive, but the chosen subset of issues to handle had to be small as understanding the tools turned out to be time-consuming. 
+In this task, I implemented a small, but fully functional ALU, with well-defined status flags. It could have been more comprehensive, but the chosen subset of issues to handle had to be small as understanding the tools turned out to be time-consuming. With the embedded system integration and status flag definitions completed, though, the brunk of the framework of the ALU is done. As such, extending the design with more functions would not be too difficult.
 \end{document}
