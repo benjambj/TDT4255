@@ -156,11 +156,14 @@ In order to save this time, and because users have to be careful with multiplica
 
 \subsection{Reusability}
 \label{subsec:reusability}
+Of my design, the most reusable pieces are the barrel shifters. As explained in \autoref{subsec:barrelshifter}, status flag calculation was kept out of them so as to not bog them down with functionality that might not be needed by other components. They were, however, not made generic in size; You can only use them for 32-bit shifts. There is little else of the design which is easily reusable---you could always copy-paste some pieces of logic in the code, but it is all tied down to the {\em alu.vhd} file. Of course, the ALU itself can be put to use in systems other than the one created in the exercise.
 
 
 \section{Discussion}
 \label{sec:discussion}
-Discussion of what went well, and what could've been done better. Things I might have thought about, and things I could have implemented. Maybe include focus and time lost on understanding our implementation tools, which resulted in less consideration left for e.g. function value =\textless function mapping, supported functions, status flags etc.
+The ALU that was produced does what it is meant to do, though little (if anything) more. It includes a basic number of arithmetic and logical functions, as well as barrel shifting functionality. As there is a vast amount of issues one could consider when implementing an ALU, I was forced to choose something that could be done with the amount of time I had available. Thus, more advanced instructions like division and floating-point arithmetic were dropped, as was the planned support for unsigned arithmetic. I spent quite some time on certain design issues like status flag semantics, while others weren't taken into heavy consideration---which function codes should map to which functions to reduce circuitry, for instance. 
+
+In the end, the ALU ended up quite small in scale---more so than I had hoped for. The main reason for this was that a lot of time was spent figuring out the tools with which we were to implement and test our solution. Had I been more thoroughly prepared, this would've been less of a time sink, and some of the issues I would have wanted to look at might've been attended to.
 
 \section{Conclusion}
 \label{sec:conclusion}
