@@ -31,30 +31,86 @@
 The overall goal of the exercise was to make a multicycle processor
 which could be included as a component in a peripheral on an FPGA
 board. The way it was to be used once uploaded to the FPGA is shown in
-\autoref{fig:communication}.
+\autoref{fig:communication}. The script, driver program and
+communication module were provided, along with several other files
+\footnote{The other files were a memory module, a register file, an
+  ALU, a top level structural definition, a peripheral interface
+  definition and an example testbench.}. Of these, only the
+communication module was required to use.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[scale=0.5]{figures/communication.png}
   \caption{\label{fig:communication} The intended usage of the
-    processor. }
+    processor. MORE EXPLANATION?}
 \end{figure}
-
 
 In addition to the support files, we were also given a schematic for a
 suggested processor architecture. This schematic is depicted in
 \autoref{fig:suggestedArchitecture}. We were also given a suggested
-instruction word format, shown in \autoref{fig:suggestedFormat}.
+instruction word format, shown in \autoref{tab:suggestedFormat}.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.4]{figures/suggested_architecture.png}
+  \caption{\label{fig:suggestedArchitecture} The suggested architecture. EXPLANATION HERE?}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|c|}
+    \hline
+    {\bf name} & opcode & unused & funct & imm & Rd & Rb & Ra \\ \hline
+    {\bf bits} & 31--29 & 28--24 & 23--20 & 19--12 & 11--8 & 7--4 & 3--0 \\ \hline
+  \end{tabular}
+  \caption{Suggested instruction format. MORE EXPLANATION?}
+  \label{tab:suggestedFormat}
+\end{table}
+
+
+Our processor was required to support the following set of instructions:
+\begin{itemize}
+\item Instructions which use an ALU.
+\item A memory-to-register load instruction.
+\item A register-to-memory store instruction.
+\item An instruction-to-register load immediate instruction.
+\item A branch instruction.
+\end{itemize}
 
 To make my processor, I decided to use the supplied framework. My
 implementation was also based on the suggestions previously mentioned,
 with a few slight modifications I will get back to in
-\autoref{sec:solution}. The challenges that were left, then, were to
-decide upon a cycle partitioning scheme for the execution of the
-different types of instructions. 
+\autoref{sec:solution}. The challenge that was left, then, was mainly
+to decide upon a cycle partitioning scheme for the execution of the
+different types of instructions. I also had to decide on a more
+specific instruction set, and adjust the instruction format based on
+these decisions.
 
 \section{Solution}
 \label{sec:solution}
+Blablabla general shit
+
+\subsection{Instruction Set}
+\label{subsec:instructionSet}
+The instruction set I decided upon is given in \autoref{tab:instructionSet}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|p{200pt}|}
+    \hline
+    {\bf Pseudo-assembly} & {\bf Semantics} \\ \hline
+    ADD/MOV/AND r{\em D}, r{\em A}, r{\em B} &  Performs the given operation on the values in register number {\em A} and {\em B}, and stores the result in register number {\em D}. \\ \hline
+    LDI r{\em D} {\em value} & Stores {\em value} in register number {\em D}. \\ \hline
+    LD r{\em D}, {\em offset}(r{\em A}) & Stores the value located at memory address $offset + value_{rA}$ in register number {\em D} \\ \hline
+    ST r
+
+  \end{tabular}
+  \caption{The supported instruction set. MORE EXPLANATION?}
+  \label{tab:instructionSet}
+\end{table}
+
+
+\subsection{Instruction Format}
+\label{subsec:instructionFormat}
 
 \subsection{The Processor}
 \label{subsec:processor}
@@ -63,7 +119,6 @@ Blablabla logical schematic!
 \subsection{The Control Unit}
 \label{subsec:controlunit}
 Blablabla states!
-
 
 \section{Tests}
 \label{sec:tests}
