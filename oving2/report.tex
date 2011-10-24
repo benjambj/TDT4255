@@ -88,37 +88,117 @@ these decisions.
 \section{Solution}
 \label{sec:solution}
 Blablabla general shit
+Maybe tell about what I wanted to create here?
 
 \subsection{Instruction Set}
 \label{subsec:instructionSet}
-The instruction set I decided upon is given in \autoref{tab:instructionSet}.
+The instruction set I decided upon is given in
+\autoref{tab:instructionSet}. It supports the minimal set of
+instructions required. As a branching instruction, I chose to
+implement `Branch Not Zero'. {\bf MAKE UP SOME REASON
+  HERE!!!!!!!!11}. 
 
 \begin{table}[htbp]
   \centering
-  \begin{tabular}{|c|p{200pt}|}
+  \begin{tabular}{|c|p{190pt}|}
     \hline
     {\bf Pseudo-assembly} & {\bf Semantics} \\ \hline
     ADD/MOV/AND r{\em D}, r{\em A}, r{\em B} &  Performs the given operation on the values in register number {\em A} and {\em B}, and stores the result in register number {\em D}. \\ \hline
     LDI r{\em D} {\em value} & Stores {\em value} in register number {\em D}. \\ \hline
-    LD r{\em D}, {\em offset}(r{\em A}) & Stores the value located at memory address $offset + value_{rA}$ in register number {\em D} \\ \hline
-    ST r
-
+    LD r{\em D}, {\em offset}(r{\em A}) & Loads the value located at memory address $offset + value_{rA}$ into register number {\em D} \\ \hline
+    ST r{\em B}, {\em offset}(r{\em A}) & Stores the value in register number {\em B} at memory address $offset + value_{rA}$. \\ \hline
+    BNZ {\em address} & If the previous instruction did not set the status register of the ALU to zero, instruction fetching will continue from the content at instruction memory address {\em address}. Otherwise, instruction fetching will resume as if no instruction had been executed. \\ \hline
   \end{tabular}
   \caption{The supported instruction set. MORE EXPLANATION?}
   \label{tab:instructionSet}
 \end{table}
 
-
 \subsection{Instruction Format}
 \label{subsec:instructionFormat}
+My instruction format is given in
+\autoref{tab:myInstructionFormat}. It is pretty similar to the
+suggested one---the only difference is that there are no unused bits:
+the func field is moved left, and the immediate field is extended. The
+reason for this was that I thought the processor had access to 32 KiB
+of byte-adressable memory, which requires fifteen bits to be fully
+addressable. As each instruction is four bytes, a thirteen bit
+immediate field would be able to be used as the address for {\em BNZ}
+to access the full instruction memory if shifted left twice. These
+assumptions about memory were not correct, though, and no such benefit
+could be harvested. The immediate is kept this large anyway, however,
+so that values from a larger interval can be used for the {\em Load
+  Immediate} instruction. For the {\em BNZ} instruction, the eight
+least significant bits of the immediate is used as an absolute jump
+address.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+    {\bf name} & opcode & func & immediate & rD & rB & rA \\ \hline
+    {\bf bits} & 31--29 & 28--25 & 24--12 & 11--8 & 7--4 & 3--0 \\ \hline
+  \end{tabular}
+  \caption{My instruction format}
+  \label{tab:myInstructionFormat}
+\end{table}
 
 \subsection{The Processor}
 \label{subsec:processor}
-Blablabla logical schematic!
+The schematic for my processor architecture is shown in
+\autoref{fig:myProcessorArchitecture}. As can be seen by comparing it
+with the architecture shown in \autoref{sec:solution}, this is not
+exactly what I had planned on making. Specifically, there are quite
+many more registers than I had wanted. The reason for this is that I
+had a lot of clocked processes in my VHDL code to implement the
+registers I wanted, while at the same time there existed other clocked
+processes for signals going out of the processor and out of the
+control unit. Consequently, signals took in some cases longer than
+intended to propagate through the system. An easy solution to this
+problem was to adjust the control unit, the consequences of which are
+described in \autoref{subsec:controlunit}.
+
+The program counter is a 32-bit wide register, which holds the address
+in memory from where the next instruction is to be fetched. As the
+memory modules provided are word-adressable, it is automatically
+incremented by one at the end of each instruction execution so that an
+instruction can be fetched from the next address in memory. In the
+case of a branch instruction, however, we want to be able to jump in
+case a branch is taken.  Thus, the input to the register is guarded by
+a multiplexor, which chooses either the next instruction or the branch
+target based on whichever is deemed appropriate by the control
+unit. The control unit also controls writing to the program counter
+with a write-enable signal, so that it is not continuously updated.
+
+As described in \autoref{subsec:instructionSet}, the {\em Store}
+instruction takes its value to store from register number {\em B}. The
+reason for this is that the register file that was handed to us has
+support for reading two registers and writing one register. When
+performing the {\em Store} instruction, we want to use the ALU for
+adding together the value in register number {\em A} and $offset$, and
+as such the multiplexer in front of ALU input {\em B} will choose the
+immediate value. However, if we circumvent the multiplexer by adding a
+wire from the output of register number {\em B} directly to the data
+memory value input, we can use the output from register B
+anyways. Organizing it in this fashion makes register file access more
+regular, as the same instruction fields can be directly mapped to
+their register numbers without any cluttering access logic. This makes
+the design simpler, and is thus a favorable solution.
 
 \subsection{The Control Unit}
 \label{subsec:controlunit}
-Blablabla states!
+My control unit operates as described in \autoref{tab:controlUnitStates}.
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|p{40ptpt}|p{40pt}|p{40pt}|p{40pt}|p{40pt}|}
+    \hline
+    {\bf Instruction} & ALU-instruction & Load immediate & Load & Store & Branch not zero \\ \hline
+    {\bf Cycle 1} & \multicolumn{5}{|p{200pt}|}{Update the value on the instruction memory address bus to the current value of the program counter} \\ \hline
+    {\bf Cycle 2} & \multicolumn{5}{|p{200pt}|}{Wait for the requested value to be read from the instruction memory.} \\ \hline
+  \end{tabular}
+  \caption{The states of the control unit during execution of different instructions.}
+  \label{tab:controlUnitStates}
+\end{table}
+
 
 \section{Tests}
 \label{sec:tests}
@@ -136,6 +216,12 @@ Blablabla states!
 
 \section{Discussion}
 \label{sec:discussion}
+
+Instruction format could get even more bits for immediate. 
+Consequences of architecture not turning out the way I wanted.
+Control Unit options---currently slow. 
+FPGA test results failure.
+
 
 \section{Conclusion}
 \label{sec:conclusion}
