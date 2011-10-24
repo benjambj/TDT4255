@@ -52,7 +52,7 @@ instruction word format, shown in \autoref{tab:suggestedFormat}.
 \begin{figure}[ht]
   \centering
   \includegraphics[scale=0.4]{figures/suggested_architecture.png}
-  \caption{\label{fig:suggestedArchitecture} The suggested architecture. EXPLANATION HERE?}
+  \caption{\label{fig:suggestedArchitecture} The suggested architecture. Data memory has four input signals. Two of them are control signals---read and write. The one coming from the instruction register goes to the memory address, while the input from the bottom-most register circumventing the ALU goes to the data value signal.}
 \end{figure}
 
 \begin{table}[htbp]
@@ -62,7 +62,7 @@ instruction word format, shown in \autoref{tab:suggestedFormat}.
     {\bf name} & opcode & unused & funct & imm & Rd & Rb & Ra \\ \hline
     {\bf bits} & 31--29 & 28--24 & 23--20 & 19--12 & 11--8 & 7--4 & 3--0 \\ \hline
   \end{tabular}
-  \caption{Suggested instruction format. MORE EXPLANATION?}
+  \caption{The suggested instruction format. The values of Ra, Rb and Rd are the three top-most signals coming out of the instruction register, respectively. The values in registers Ra and Rb are the inputs to the ALU from top to bottom.}
   \label{tab:suggestedFormat}
 \end{table}
 
@@ -87,16 +87,47 @@ these decisions.
 
 \section{Solution}
 \label{sec:solution}
-Blablabla general shit
-Maybe tell about what I wanted to create here?
+The design I had wanted to create, is shown in
+\autoref{fig:expectedArchitecture}. It is basically the suggested
+architecture, with a few alterations. 
+
+For instance, to support the load and store instructions of my
+instruction set, I needed to calculate the address. As such, I could
+not simply map the immediate value of the instruction to the address
+input of the data memory. Instead, it had to go as an input to the
+ALU, whose output would have to be connected to the data memory
+address signal. Consequently, I had to add a multiplexor in front of
+ALU input B, to choose between using either the offset value for load
+and store instructions or the register value for ALU instructions. A
+multiplexor to choose the function of the ALU was also needed, so that
+addition could be chosen when a load or store was to be executed.
+
+Another thing I added was a register in which to store the result of
+an ALU calculation. This was needed to make sure that the output was
+stable before using it either for memory access or register storage,
+which would be the case if the ALU operation was not slower than one
+cycle.
+
+The read-enable control signal to the data memory is removed. This was
+done because it seemed to serve no purpose - in the memory module that
+was handed to us, something is always read, and there is no way to
+turn that off. Although there would be merit to such a control signal
+in a real processor with real memory blocks, for this exercise I found
+it redundant to include both a read and a write signal.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/expected_architecture.png}
+  \caption{\label{fig:expectedArchitecture} The architecture I had expected.}
+\end{figure}
+
 
 \subsection{Instruction Set}
 \label{subsec:instructionSet}
 The instruction set I decided upon is given in
 \autoref{tab:instructionSet}. It supports the minimal set of
 instructions required. As a branching instruction, I chose to
-implement `Branch Not Zero'. {\bf MAKE UP SOME REASON
-  HERE!!!!!!!!11}. 
+implement `Branch Not Zero'. 
 
 \begin{table}[htbp]
   \centering
@@ -109,7 +140,7 @@ implement `Branch Not Zero'. {\bf MAKE UP SOME REASON
     ST r{\em B}, {\em offset}(r{\em A}) & Stores the value in register number {\em B} at memory address $offset + value_{rA}$. \\ \hline
     BNZ {\em address} & If the previous instruction did not set the status register of the ALU to zero, instruction fetching will continue from the content at instruction memory address {\em address}. Otherwise, instruction fetching will resume as if no instruction had been executed. \\ \hline
   \end{tabular}
-  \caption{The supported instruction set. MORE EXPLANATION?}
+  \caption{The supported instruction set.}
   \label{tab:instructionSet}
 \end{table}
 
@@ -152,22 +183,40 @@ many more registers than I had wanted. The reason for this is that I
 had a lot of clocked processes in my VHDL code to implement the
 registers I wanted, while at the same time there existed other clocked
 processes for signals going out of the processor and out of the
-control unit. Consequently, signals took in some cases longer than
-intended to propagate through the system. An easy solution to this
-problem was to adjust the control unit, the consequences of which are
-described in \autoref{subsec:controlunit}.
+control unit\footnote{The clocked process for signals in the processor
+  interface was needed in order to only start and stop the processor
+  on a new cycle. The registers going out of the control unit makes
+  sure that the control signals are stable.}. Consequently, signals
+took in some cases longer than intended to propagate through the
+system. An easy solution to this problem was to adjust the control
+unit, the consequences of which are described in
+\autoref{subsec:controlunit}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/final_architecture.png}
+  \caption{\label{fig:myProcessorArchitecture} The actual architecture of my implementation.}
+\end{figure}
+
 
 The program counter is a 32-bit wide register, which holds the address
 in memory from where the next instruction is to be fetched. As the
 memory modules provided are word-adressable, it is automatically
 incremented by one at the end of each instruction execution so that an
-instruction can be fetched from the next address in memory. In the
-case of a branch instruction, however, we want to be able to jump in
-case a branch is taken.  Thus, the input to the register is guarded by
-a multiplexor, which chooses either the next instruction or the branch
-target based on whichever is deemed appropriate by the control
-unit. The control unit also controls writing to the program counter
-with a write-enable signal, so that it is not continuously updated.
+instruction can be fetched from the next address in memory. 
+
+In the case of a branch instruction, however, we want to be able to
+jump in case a branch is taken.  Thus, the input to the register is
+guarded by a multiplexor, which chooses either the next instruction or
+the branch target based on whichever is deemed appropriate by the
+control unit. The control unit also controls writing to the program
+counter with a write-enable signal, so that it is not continuously
+updated.
+
+The incrementing is done with a separate adder, rather than using the
+ALU. The reason is that using the ALU would complicate both the
+control unit logic and the design by adding more muxes to both ALU
+inputs and function selection.
 
 As described in \autoref{subsec:instructionSet}, the {\em Store}
 instruction takes its value to store from register number {\em B}. The
@@ -186,33 +235,73 @@ the design simpler, and is thus a favorable solution.
 
 \subsection{The Control Unit}
 \label{subsec:controlunit}
-My control unit operates as described in \autoref{tab:controlUnitStates}.
+My control unit operates as described in
+\autoref{tab:controlUnitStates}. Due to the extra number of registers,
+a lot of cycles are used to wait for registers to update. Notice that
+the control unit also has registers for its every control signal,
+which means that asserting a control signal in a cycle means that the
+processor doesn't see it until the cycle after that. In the case where
+the control signal goes to control memory, there will be another clock
+cycle of delay due to the register in front of the memory. This means,
+for instance, that a store instruction only actually updates the data
+memory at the beginning of the next instruction execution phase.
 \begin{table}[htbp]
   \centering
-  \begin{tabular}{|c|p{40ptpt}|p{40pt}|p{40pt}|p{40pt}|p{40pt}|}
+  \begin{tabular}{|c|p{50pt}|p{50pt}|p{50pt}|p{50pt}|p{50pt}|}
     \hline
     {\bf Instruction} & ALU-instruction & Load immediate & Load & Store & Branch not zero \\ \hline
     {\bf Cycle 1} & \multicolumn{5}{|p{200pt}|}{Update the value on the instruction memory address bus to the current value of the program counter} \\ \hline
     {\bf Cycle 2} & \multicolumn{5}{|p{200pt}|}{Wait for the requested value to be read from the instruction memory.} \\ \hline
+    {\bf Cycle 3} & Select func field for ALU. Select register value for input to B. & Wait for immediate to load. & Select ``add'' function to ALU. Select offset value for input to B. & Select ``add'' function to ALU. Select offset value for input to B. & Select PC input based on the value in the status register. Wait for immediate register to load. \\ \hline
+    {\bf Cycle 4} & Wait for register B to get loaded & Select immediate value as input to register file. Select incremented PC as the new PC value. Assert regfile and PC write-enable.  & Wait for immediate to get loaded. & Wait for register B to get loaded & Assert write to PC.  \\ \hline
+    {\bf Cycle 5} & Execute operation. Select ALu-output as register file input. & Deassert all write-enables. & Wait for register B to get loaded. & Assert control unit dmem write-enable. Select incremented PC as the new PC value. Assert PC write-enable. & Deassert all write-enables. \\ \hline
   \end{tabular}
-  \caption{The states of the control unit during execution of different instructions.}
+  \caption{The states of the control unit, part 1.}
   \label{tab:controlUnitStates}
 \end{table}
 
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|p{50pt}|p{50pt}|p{50pt}|p{50pt}|p{50pt}|}
+    \hline
+    {\bf Cycle 6} & Assert regfile, status, alu-out and program counter write-enable. Select incremented PC as the new PC value. &  & Select memory as input to register file. Wait for dmem address to propagate.  & Deassert all write-enables.  & \\ \hline
+    {\bf Cycle 7} & Update PC &  & Select incremented PC as the new PC value. Assert regfile and program counter write-enable. & Deassert all write-enables. &  \\ \hline
+    {\bf Cycle 8} &  &  & Deassert all write-enables. &  &  \\ \hline
+  \end{tabular}
+  \caption{Control unit states cont.}
+  \label{tab:controlUnitStatesCont}
+\end{table}
 
 \section{Tests}
 \label{sec:tests}
-
+To test that the processer implementation was working as it was
+supposed to, I performed functionality testing in ModelSim, as well as
+tests of the implementation uploaded to the FPGA.
 \subsection{Functionality Tests in Modelsim}
 \label{subsec:functestsim}
+I created two different test benches to verify the correctness of my
+implementation---one for the processor alone, and one of the entire
+peripheral. Both of them gave positive results. However, I will only
+reproduce here the results of the tests of the entire peripheral, as
+these should be extensive enough to be representable.
+
+The contents of my testbench can be found in the {\em
+  toplevel\_tb.vhd} file of my project delivery. For ease of
+reference, though, here is what is done, given in the pseudo-assembler
+syntax of \autoref{subsec:instructionSet}:
+\begin{enumerate}
+\item LDI rX, oxcfoj
+\item LDI odsifjosdjifsof
+\item ETC!!!
+\end{enumerate}
+
 
 \subsection{Timing Tests in Modelsim}
 \label{subsec:timingtestsim}
+The only thing I have here is place and route telling me that there is no trouble - max delay around 10ns, max clock almost 110 MHz.
 
 \subsection{Functionality Tests on the FPGA}
 \label{subsec:functestfpga}
-
-
 
 \section{Discussion}
 \label{sec:discussion}
@@ -220,6 +309,11 @@ My control unit operates as described in \autoref{tab:controlUnitStates}.
 Instruction format could get even more bits for immediate. 
 Consequences of architecture not turning out the way I wanted.
 Control Unit options---currently slow. 
+   e.g. write rising-edge read falling-edge, yields stable input for CU which might remove need for clock?
+   other ways to circumvent registers.
+   some states are actually unnecessary - update PC could in some cases be included in other states.
+Simplifications:
+    The multiplexor for choosing ALU function is strictly unnecessary - you can just have load and store instructions translate into ones which have the code for 'add' in their funct field.
 FPGA test results failure.
 
 
