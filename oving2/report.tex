@@ -1,0 +1,114 @@
+\documentclass[11pt]{article}
+
+\usepackage{graphicx,amsmath,amssymb,subfigure,url,xspace}
+\usepackage[colorlinks=true]{hyperref}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\bigeg}{E.g.,\xspace}
+\newcommand{\etal}{\textit{et~al.\xspace}}
+\newcommand{\etc}{etc.\@\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\bigie}{I.e.,\xspace}
+
+\title{Exercise 2 - Implementation of a Multicycle Processor}
+\author{Benjamin Bj\o rnseth}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  In this exercise, we were to design and implement a multicycle processor. I
+  made a design in which the processor is split into two pieces: the circuitry
+  which performs operations on the register file and memory, and a control unit
+  which drives the previously mentioned hardware. The control unit ended up
+  having to use a larger number of cycles than expected per operation, due to a
+  large amount registers being constructed from synthesis of the VHDL. The full
+  design performs correctly in a simulated environment, but only partially so on
+  the FPGA in which it was physically realized.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:introduction}
+The overall goal of the exercise was to make a multicycle processor
+which could be included as a component in a peripheral on an FPGA
+board. The way it was to be used once uploaded to the FPGA is shown in
+\autoref{fig:communication}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.5]{figures/communication.png}
+  \caption{\label{fig:communication} The intended usage of the
+    processor. }
+\end{figure}
+
+
+In addition to the support files, we were also given a schematic for a
+suggested processor architecture. This schematic is depicted in
+\autoref{fig:suggestedArchitecture}. We were also given a suggested
+instruction word format, shown in \autoref{fig:suggestedFormat}.
+
+To make my processor, I decided to use the supplied framework. My
+implementation was also based on the suggestions previously mentioned,
+with a few slight modifications I will get back to in
+\autoref{sec:solution}. The challenges that were left, then, were to
+decide upon a cycle partitioning scheme for the execution of the
+different types of instructions. 
+
+\section{Solution}
+\label{sec:solution}
+
+\subsection{The Processor}
+\label{subsec:processor}
+Blablabla logical schematic!
+
+\subsection{The Control Unit}
+\label{subsec:controlunit}
+Blablabla states!
+
+
+\section{Tests}
+\label{sec:tests}
+
+\subsection{Functionality Tests in Modelsim}
+\label{subsec:functestsim}
+
+\subsection{Timing Tests in Modelsim}
+\label{subsec:timingtestsim}
+
+\subsection{Functionality Tests on the FPGA}
+\label{subsec:functestfpga}
+
+
+
+\section{Discussion}
+\label{sec:discussion}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+
+\bibliographystyle{plain}
+\bibliography{literature.bib}
+
+\end{document}
+
+%We were given an implementation of a suggested structure of
+%this peripheral. 
+
+%Amongst these handouts, the only part we were
+%required to use was a communication module. This module had the
+%ability to read and write to memory as well as start the
+%processor. The communication module would operate based on the values
+%of some registers, set by a C driver program. Once on the FPGA, we
+%could run the processor by first using a python script to send
+%instructions across a USB connection. a C driver program would listen
+%to incoming instructions pass instructions
+
+%We weren
+%handed several support files, amongst them VHDL implementations of
+%components such as memory, a register file, an ALU, a communication
+%module and a top level component used to glue together the different
+%parts of the peripheral. The communication module could initialize and
+%read memory as well as start the processor, and we were required to
+%use it. This component, together with a C driver which was also in the
+%handouts, was used for controlling the processor once uploaded on the
+%FPGA.
