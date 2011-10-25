@@ -23,7 +23,7 @@
   having to use a larger number of cycles than expected per operation, due to a
   large amount registers being constructed from synthesis of the VHDL. The full
   design performs correctly in a simulated environment, but only partially so on
-  the FPGA in which it was physically realized.
+  the FPGA evaluation board in which it was physically realized.
 \end{abstract}
 
 \section{Introduction}
@@ -42,7 +42,12 @@ communication module was required to use.
   \centering
   \includegraphics[scale=0.5]{figures/communication.png}
   \caption{\label{fig:communication} The intended usage of the
-    processor. MORE EXPLANATION?}
+    processor. A python script is used to load the instruction and
+    data memory by issuing commands to the communication module
+    through the C driver. Then, a command is issued to start the
+    processor, which begins to work on the instructions in instruction
+    memory. It can then be stopped, and the contents of the data
+    memory be read to get the result of the program.}
 \end{figure}
 
 In addition to the support files, we were also given a schematic for a
@@ -67,7 +72,7 @@ instruction word format, shown in \autoref{tab:suggestedFormat}.
     {\bf name} & opcode & unused & funct & imm & Rd & Rb & Ra \\ \hline
     {\bf bits} & 31--29 & 28--24 & 23--20 & 19--12 & 11--8 & 7--4 & 3--0 \\ \hline
   \end{tabular}
-  \caption{The suggested instruction format. The values of Ra, Rb and Rd are the three top-most signals coming out of the instruction register, respectively. The values in registers Ra and Rb are the inputs to the ALU from top to bottom.}
+  \caption{The suggested instruction format. The values of Ra, Rb and Rd are the three top-most signals coming out of the instruction register in \autoref{fig:suggestedArchitecture}, respectively. The values in registers Ra and Rb are the inputs to the ALU from top to bottom.}
   \label{tab:suggestedFormat}
 \end{table}
 
@@ -92,12 +97,13 @@ these decisions.
 
 \section{Solution}
 \label{sec:solution}
-The design I had wanted to create, is shown in
+The design I had wanted to create is shown in
 \autoref{fig:expectedArchitecture}. It is basically the suggested
 architecture, with a few alterations. 
 
 For instance, to support the load and store instructions of my
-instruction set, I needed to calculate the address. As such, I could
+instruction set described in \autoref{subsec:instructionSet}, I needed
+to calculate the address as a $base + offset$ value. As such, I could
 not simply map the immediate value of the instruction to the address
 input of the data memory. Instead, it had to go as an input to the
 ALU, whose output would have to be connected to the data memory
@@ -109,9 +115,7 @@ addition could be chosen when a load or store was to be executed.
 
 Another thing I added was a register in which to store the result of
 an ALU calculation. This was needed to make sure that the output was
-stable before using it either for memory access or register storage,
-which would be the case if the ALU operation was not slower than one
-cycle.
+stable before using it either for memory access or register storage.
 
 The read-enable control signal to the data memory is removed. This was
 done because it seemed to serve no purpose - in the memory module that
@@ -143,7 +147,7 @@ implement `Branch Not Zero'.
     LDI r{\em D} {\em value} & Stores {\em value} in register number {\em D}. \\ \hline
     LD r{\em D}, {\em offset}(r{\em A}) & Loads the value located at memory address $offset + value_{rA}$ into register number {\em D} \\ \hline
     ST r{\em B}, {\em offset}(r{\em A}) & Stores the value in register number {\em B} at memory address $offset + value_{rA}$. \\ \hline
-    BNZ {\em address} & If the previous instruction did not set the status register of the ALU to zero, instruction fetching will continue from the content at instruction memory address {\em address}. Otherwise, instruction fetching will resume as if no instruction had been executed. \\ \hline
+    BNZ {\em address} & If the previous instruction did not set the status register of the ALU to zero, instruction fetching will continue from instruction memory address {\em address}. Otherwise, instruction fetching will resume as if no instruction had been executed. \\ \hline
   \end{tabular}
   \caption{The supported instruction set.}
   \label{tab:instructionSet}
@@ -185,14 +189,14 @@ binary value determine what they represent.
 
 \begin{table}[htbp]
   \centering
-  \begin{tabular}{|c|c|p{50pt}|}
+  \begin{tabular}{|c|c|c|}
     \hline
     {\bf Opcode} & {\bf Function field} & {\bf Instruction performed} \\ \hline
     100 & XXXX & Branch Not Zero \\ \hline
     011 & XXXX & Store \\ \hline
     010 & XXXX & Load \\ \hline
     001 & XXXX & Load immediate \\ \hline
-    000 & \multicolumn{2}{|p{70pt}|}{Mapping given in \autoref{tab:funcMapping}} \\ \hline
+    000 & \multicolumn{2}{|c|}{Mapping given in \autoref{tab:funcMapping}} \\ \hline
   \end{tabular}
   \caption{Mapping between opcode and instruction performed.}
   \label{tab:opcodeMapping}
@@ -200,7 +204,7 @@ binary value determine what they represent.
 
 \begin{table}[htbp]
   \centering
-  \begin{tabular}{|c|p{50pt}|}
+  \begin{tabular}{|c|c|}
     \hline
     {\bf Function field} & {\bf Instruction performed} \\ \hline
     0000 & Move \\ \hline
@@ -280,19 +284,19 @@ My control unit operates as described in
 \autoref{tab:controlUnitStates}. Due to the extra number of registers,
 a lot of cycles are used to wait for registers to update. Notice that
 the control unit also has registers for its every control signal,
-which means that asserting a control signal in a cycle means that the
+which means that asserting a control signal in one cycle means that the
 processor doesn't see it until the cycle after that. In the case where
 the control signal goes to control memory, there will be another clock
-cycle of delay due to the register in front of the memory. This means,
+cycle of delay due to the registers in front of the memory. This means,
 for instance, that a store instruction only actually updates the data
 memory at the beginning of the next instruction execution phase.
 \begin{table}[htbp]
   \centering
   \begin{tabular}{|c|p{50pt}|p{50pt}|p{50pt}|p{50pt}|p{50pt}|}
     \hline
-    {\bf Instruction} & ALU-instruction & Load immediate & Load & Store & Branch not zero \\ \hline
-    {\bf Cycle 1} & \multicolumn{5}{|p{200pt}|}{Update the value on the instruction memory address bus to the current value of the program counter} \\ \hline
-    {\bf Cycle 2} & \multicolumn{5}{|p{200pt}|}{Wait for the requested value to be read from the instruction memory.} \\ \hline
+    {\bf Instruction} & {\bf ALU-instruction} & {\bf Load immediate} & {\bf Load} & {\bf Store} & {\bf Branch not zero} \\ \hline
+    {\bf Cycle 1} & \multicolumn{5}{|p{250pt}|}{Update the value on the instruction memory address bus to the current value of the program counter} \\ \hline
+    {\bf Cycle 2} & \multicolumn{5}{|p{250pt}|}{Wait for the requested value to be read from the instruction memory.} \\ \hline
     {\bf Cycle 3} & Select func field for ALU. Select register value for input to B. & Wait for immediate to load. & Select ``add'' function to ALU. Select offset value for input to B. & Select ``add'' function to ALU. Select offset value for input to B. & Select PC input based on the value in the status register. Wait for immediate register to load. \\ \hline
     {\bf Cycle 4} & Wait for register B to get loaded & Select immediate value as input to register file. Select incremented PC as the new PC value. Assert regfile and PC write-enable.  & Wait for immediate to get loaded. & Wait for register B to get loaded & Assert write to PC.  \\ \hline
     {\bf Cycle 5} & Execute operation. Select ALu-output as register file input. & Deassert all write-enables. & Wait for register B to get loaded. & Assert control unit dmem write-enable. Select incremented PC as the new PC value. Assert PC write-enable. & Deassert all write-enables. \\ \hline
@@ -305,6 +309,7 @@ memory at the beginning of the next instruction execution phase.
   \centering
   \begin{tabular}{|c|p{50pt}|p{50pt}|p{50pt}|p{50pt}|p{50pt}|}
     \hline
+    {\bf Instruction} & {\bf ALU-instruction} & {\bf Load immediate} & {\bf Load} & {\bf Store} & {\bf Branch not zero} \\ \hline
     {\bf Cycle 6} & Assert regfile, status, alu-out and program counter write-enable. Select incremented PC as the new PC value. &  & Select memory as input to register file. Wait for dmem address to propagate.  & Deassert all write-enables.  & \\ \hline
     {\bf Cycle 7} & Deassert all write-enables. &  & Select incremented PC as the new PC value. Assert regfile and program counter write-enable. &  &  \\ \hline
     {\bf Cycle 8} &  &  & Deassert all write-enables. &  &  \\ \hline
@@ -339,8 +344,8 @@ run. The result is then stored at memory address 0xFF.
 
 Below follows some screenshots of waveforms captured in ModelSim,
 showing that the results from the test bench are positive.
-
-\begin{figure}[ht]
+\newpage{}
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_2_load_immediate_cropped.png}
   \caption{\label{fig:ldi} Performing a load immediate operation,
@@ -348,51 +353,51 @@ showing that the results from the test bench are positive.
     properly stored in the register file.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_3_store_cropped.png}
-  \caption{\label{fig:ldi} Performing a store operation. This
+  \caption{\label{fig:store} Performing a store operation. This
     screenshot shows that the value is properly stored in the data
     memory module.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_4_load_cropped.png}
-  \caption{\label{fig:ldi} Performing a load from memory. The contents
+  \caption{\label{fig:load} Performing a load from memory. The contents
     of memory address zero is loaded into register five, as was
     intenteded.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_5_alu_and_cropped.png}
-  \caption{\label{fig:ldi} An ALU operation of type bitwise AND is
+  \caption{\label{fig:aluAnd} An ALU operation of type bitwise AND is
     performed. As shown here, it is stored in the register specified.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_6_bnz_not_taken_cropped_2.png}
-  \caption{\label{fig:ldi} A Branch Not Zero instruction. As the value
+  \caption{\label{fig:bnz} A Branch Not Zero instruction. As the value
     of {\em status} implies that the previous result was zero, the
     branch is not taken. This can be seen on the next value of
     imem\_addr, which is just an incremented version of the previous
     value.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_7_store_loop_cropped.png}
-  \caption{\label{fig:ldi} Here we are at the end of the storage loop
+  \caption{\label{fig:storeloop} Here we are at the end of the storage loop
     described at the top of this section. As we can see, every memory
     location gets updated with the correct value.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_8_load_add_loop_cropped.png}
-  \caption{\label{fig:ldi} Here we are close to the end of the load
+  \caption{\label{fig:accloop} Here we are close to the end of the load
     and accumulation loop. The counting register, register $2$, has a
     value of $1$, being decremented and reaching $0$ at the end of this
     iteration. Register $5$ contains the value at the memory address of
@@ -400,16 +405,23 @@ showing that the results from the test bench are positive.
     contains the value $-1$.}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[pht]
   \centering
   \includegraphics[scale=0.35]{figures/Func_test_9_store_at_offset_cropped.png}
-  \caption{\label{fig:ldi} The running total from the previous loop is
+  \caption{\label{fig:totalstored} The running total from the previous loop is
     properly stored at memory location 0xFF.}
 \end{figure}
 
 \subsection{Timing Tests in Modelsim}
 \label{subsec:timingtestsim}
-I was unable to get timing simulations to run in ModelSim. I do, however, have the results from timing analysis performed during synthesis of both the peripheral alone as well as the entire embedded system. The only thing I have here is place and route telling me that there is no trouble - max delay around 10ns, max clock almost 110 MHz.
+I was unable to get timing simulations to run in ModelSim, as there
+was a problem with loading a library required to perform that kind of
+simulation. When running synthesis, however, timing analysis is
+performed, and if there are any timing constraints which fail to hold
+in the implementation a warning is issued. In both synthesis of the
+peripheral by itself as well as the entire embedded system, no such
+warnings were raised. Consequently, the results of this timing
+analysis were positive. 
 
 \subsection{Functionality Tests on the FPGA}
 \label{subsec:functestfpga}
@@ -417,15 +429,15 @@ To verify the functionality of my processor once uploaded on the FPGA,
 I used the python script provided to load the instruction memory with
 the content of the file {\em testoutput}, whose pseudo-assembly can be
 seen in the file {\em testassembly.s}. I then sent a command to start
-the processor, followed by a command to stop it. I then made a dump of
-the data memory using the python script, to see what was contained
-there. Although the values at addresses 1 to 10 were 1 to 10, as
-expected, the values at addresses 0xb--0xd were the hexadecimal values
-of the instruction that should've been in instruction memory at those
-locations. The value at address 0xff was 0x37 which equals 55, and was
-as expected. When starting and stopping the processor again, taking a
-new dump yielded what should have been the contents of the instruction
-memory. 
+the processor, followed by a command to stop it. Finally, I made a
+dump of the data memory using the python script to see what was
+contained there. Although the values at addresses 1 to 10 were 1 to
+10, as expected, the values at addresses 0xb--0xd were the hexadecimal
+values of the instruction that should've been in instruction memory at
+those locations. The value at address 0xff was 0x37 which equals 55,
+and was as expected. When starting and stopping the processor again,
+taking a new dump yielded what should have been the contents of the
+instruction memory.
 
 I then tried clearing the data memory by setting it all to zero,
 uploading the program again to instruction memory, and taking a new
@@ -435,8 +447,9 @@ memory in the simulation, I suspect that this is a problem with the
 definition of either my embedded system project or the inclusion of
 the peripheral in it. The processor design can be ruled out as the
 cause, at least, seeing how it is not active during the writing and
-reading of data and instruction memory. Any further than this I was
-unfortunately unable to figure out.
+reading of data and instruction memory. I was unforunately not able to
+discover any more accurate reason for the failure than this, and was
+not able to correct it.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -480,10 +493,10 @@ and into the processor, at a time where the cause of this delay was
 not known. If one just asserts and deasserts this signal one cycle
 earlier, it should reach the program counter register at the expected
 time. As such, the synchronization state at the end of the execution
-should be removable.
-\newline
+should be removable.\newline
+
 Optimizations could also be made with the instruction format. To allow
-for even more bits in the immediate, supporting even immediate values
+for even more bits in the immediate, supporting immediate values
 from an even larger range to be loaded into a register, one could
 shrink the opcode and function bits. As there are only seven
 instructions\footnote{BNZ, LD, ST, LDI and three ALU operations.}, you
@@ -524,12 +537,10 @@ allowing larger values of immediates to be loaded into registers. This
 gain comes at the price of having a less extensible processor. There
 would only be room for adding one extra ALU instruction---anything
 else would have to chew into the immediate value field and break
-backwards compatibility. One must thus predict what amount of
+backwards compatibility. One should thus predict what amount of
 instructions the processor and ALU could benefit from supporting, and
 make the opcode and function fields at least large enough to hold this
-estimate. 
-
-\newline
+estimate.\newline
 
 A simple redundancy present in the current design is the multiplexor
 in front of the function selection input of the ALU. One could remove
@@ -540,15 +551,13 @@ could have the function field required for an add. We could then
 simply map the function field from the instruction register to the
 ALU, saving the space and cost of a multiplexer. This optimization
 does not seamlessly integrate with the one previously described, as
-their is no separate function field. If the unused opcode/function
+there is no separate function field. If the unused opcode/function
 value would also map to the ADD function of the ALU, this would be
 doable---if the two least significant bits of the load and store
 opcode was the same as the ones used for add instructions, then a
 direct mapping between these bits and the function field would
 work. It would leave no room whatsoever for extensions to the
-processor instruction set, though.
-
-\newline
+processor instruction set, though.\newline
 
 The potential benefits of a multicycle design are twofold: Space
 savings by reusing components in different cycles, and time savings by
@@ -588,9 +597,6 @@ as a peripheral uploaded to an FPGA board. This is likely to be caused
 by a faulty project setup, however, and does probably not have to do
 with a flaw in the processor design.
 
-\bibliographystyle{plain}
-\bibliography{literature.bib}
-
 \end{document}
 
 %We were given an implementation of a suggested structure of
@@ -625,3 +631,4 @@ with a flaw in the processor design.
 %    The multiplexor for choosing ALU function is strictly unnecessary - you can just have load and store instructions translate into ones which have the code for 'add' in their funct field.
 %FPGA test results failure.
 %To what degree do I utilize the benefits of a multicycle design?
+%The only thing I have here is place and route telling me that there is no trouble - max delay around 10ns, max clock almost 110 MHz.
