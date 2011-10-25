@@ -481,23 +481,112 @@ not known. If one just asserts and deasserts this signal one cycle
 earlier, it should reach the program counter register at the expected
 time. As such, the synchronization state at the end of the execution
 should be removable.
+\newline
+Optimizations could also be made with the instruction format. To allow
+for even more bits in the immediate, supporting even immediate values
+from an even larger range to be loaded into a register, one could
+shrink the opcode and function bits. As there are only seven
+instructions\footnote{BNZ, LD, ST, LDI and three ALU operations.}, you
+only need three bits to specify which operation you're interested
+in. This would not necessarily complicate instruction decoding
+either. An example mapping between opcode and function fields and the
+corresponding instruction performed is shown in
+\autoref{tab:alternativeFormat}. 
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|}
+    \hline
+    {\bf Field value} & {\bf Instruction performed} \\ \hline
+    111 & Branch not zero \\ \hline
+    110 & Store \\ \hline
+    101 & Load \\ \hline
+    100 & Load immediate \\ \hline
+    011 & Add \\ \hline
+    010 & And \\ \hline
+    001 & Move \\ \hline
+    000 & Unused \\ \hline
+  \end{tabular}
+  \caption{An alternative mapping between opcode fields and instruction performed.}
+  \label{tab:alternativeFormat}
+\end{table}
+If the ALU is edited so that the
+function code for an operation are the same as the two least
+significant bits of the corresponding opcode, then instructions could
+be executed about as simply as they are at present. Simply map the two
+least significant bits of the opcode to the function field, and have
+the multiplexor guarding the ALU function input choose either this
+value or ``add'' based on the value of the most significant bit of the
+opcode. 
 
-Optimizations could also be made with the instruction format. 
+With this optimization, 17 bits are now available for use as the
+immediate value. As was previously discussed, we gain the luxury of
+allowing larger values of immediates to be loaded into registers. This
+gain comes at the price of having a less extensible processor. There
+would only be room for adding one extra ALU instruction---anything
+else would have to chew into the immediate value field and break
+backwards compatibility. One must thus predict what amount of
+instructions the processor and ALU could benefit from supporting, and
+make the opcode and function fields at least large enough to hold this
+estimate. 
 
-Instruction format could get even more bits for immediate. 
-Consequences of architecture not turning out the way I wanted.
-Control Unit options---currently slow. 
-   e.g. write rising-edge read falling-edge, yields stable input for CU which might remove need for clock?
-   other ways to circumvent registers.
-   some states are actually unnecessary - update PC could in some cases be included in other states.
-Simplifications:
-    The multiplexor for choosing ALU function is strictly unnecessary - you can just have load and store instructions translate into ones which have the code for 'add' in their funct field.
-FPGA test results failure.
-To what degree do I utilize the benefits of a multicycle design?
+\newline
+
+A simple redundancy present in the current design is the multiplexor
+in front of the function selection input of the ALU. One could remove
+this completely by editing the opcode mapping described in
+\autoref{tab:opcodeMapping}. Instead of having the ALU function field
+assume don't-care values for the load and store instructions, they
+could have the function field required for an add. We could then
+simply map the function field from the instruction register to the
+ALU, saving the space and cost of a multiplexer. This optimization
+does not seamlessly integrate with the one previously described, as
+their is no separate function field. If the unused opcode/function
+value would also map to the ADD function of the ALU, this would be
+doable---if the two least significant bits of the load and store
+opcode was the same as the ones used for add instructions, then a
+direct mapping between these bits and the function field would
+work. It would leave no room whatsoever for extensions to the
+processor instruction set, though.
+
+\newline
+
+The potential benefits of a multicycle design are twofold: Space
+savings by reusing components in different cycles, and time savings by
+having instruction execution latency be as short as possible for each
+instruction. 
+
+In my design, the space savings part is by and large
+ignored. The two use cases for this in my processor would be reusing
+the ALU for calculating an incremented program counter value, and
+using a single memory module for both instructions and data. As was
+discussed in \autoref{subsec:processor}, reusing the ALU would hardly
+be a gain, considering what would have to be added in place of the
+separate incrementer. Using a single memory would be plausible, but
+then we would cut our already scarce memory resources in half. As
+such, I saw no need to do this. 
+
+The time savings, however, is heavily invested into. Although I have
+just discussed at length how my processor is not exactly blazingly
+fast, it does optimize quite well for individual instructions. The
+load-immediate and branch-not-zero instructions, for instance, execute
+in five cycle, which is just $5/8 = 62.5\%$ of the time required for
+the load instruction. Seeing how the majority of the optimizations
+previously discussed are of a global nature, time savings are
+certainly possible in this design compared to a single-cycle one.
 
 \section{Conclusion}
 \label{sec:conclusion}
-
+In this exercise, I designed and implemented a multicycle processor. A
+lot of issues with the implementation were discovered only after
+actually having finished it, and as such there are many optimizations
+to the final design left which could have been made. Regardless, the
+design itself was not exposed as having any major drawbacks, and
+applying simple workarounds to fix the implementation issues still
+left a processor which benefits in individual instruction execution
+time from a multicycle design. The processor did not function properly
+as a peripheral uploaded to an FPGA board. This is likely to be caused
+by a faulty project setup, however, and does probably not have to do
+with a flaw in the processor design.
 
 \bibliographystyle{plain}
 \bibliography{literature.bib}
@@ -525,3 +614,14 @@ To what degree do I utilize the benefits of a multicycle design?
 %use it. This component, together with a C driver which was also in the
 %handouts, was used for controlling the processor once uploaded on the
 %FPGA.
+
+%Instruction format could get even more bits for immediate. 
+%Consequences of architecture not turning out the way I wanted.
+%Control Unit options---currently slow. 
+%   e.g. write rising-edge read falling-edge, yields stable input for CU which might remove need for clock?
+%   other ways to circumvent registers.
+%   some states are actually unnecessary - update PC could in some cases be included in other states.
+%Simplifications:
+%    The multiplexor for choosing ALU function is strictly unnecessary - you can just have load and store instructions translate into ones which have the code for 'add' in their funct field.
+%FPGA test results failure.
+%To what degree do I utilize the benefits of a multicycle design?
