@@ -52,7 +52,12 @@ instruction word format, shown in \autoref{tab:suggestedFormat}.
 \begin{figure}[ht]
   \centering
   \includegraphics[scale=0.4]{figures/suggested_architecture.png}
-  \caption{\label{fig:suggestedArchitecture} The suggested architecture. Data memory has four input signals. Two of them are control signals---read and write. The one coming from the instruction register goes to the memory address, while the input from the bottom-most register circumventing the ALU goes to the data value signal.}
+  \caption{\label{fig:suggestedArchitecture} The suggested
+    architecture. Data memory has four input signals. Two of them are
+    control signals---read and write. The one coming from the
+    instruction register goes to the memory address, while the input
+    from the bottom-most register circumventing the ALU goes to the
+    data value signal.}
 \end{figure}
 
 \begin{table}[htbp]
@@ -173,6 +178,40 @@ address.
   \label{tab:myInstructionFormat}
 \end{table}
 
+The relation between the opcode and function fields and the operation
+performed is given in \autoref{tab:opcodeMapping} and
+\autoref{tab:funcMapping}. As for the other instruction fields, their
+binary value determine what they represent.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|p{50pt}|}
+    \hline
+    {\bf Opcode} & {\bf Function field} & {\bf Instruction performed} \\ \hline
+    100 & XXXX & Branch Not Zero \\ \hline
+    011 & XXXX & Store \\ \hline
+    010 & XXXX & Load \\ \hline
+    001 & XXXX & Load immediate \\ \hline
+    000 & \multicolumn{2}{|p{70pt}|}{Mapping given in \autoref{tab:funcMapping}} \\ \hline
+  \end{tabular}
+  \caption{Mapping between opcode and instruction performed.}
+  \label{tab:opcodeMapping}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|p{50pt}|}
+    \hline
+    {\bf Function field} & {\bf Instruction performed} \\ \hline
+    0000 & Move \\ \hline
+    0001 & And \\ \hline
+    0111 & Add \\ \hline
+  \end{tabular}
+  \caption{Mapping between function field and the instruction performed.}
+  \label{tab:funcMapping}
+\end{table}
+
+
 \subsection{The Processor}
 \label{subsec:processor}
 The schematic for my processor architecture is shown in
@@ -188,8 +227,10 @@ control unit\footnote{The clocked process for signals in the processor
   on a new cycle. The registers going out of the control unit makes
   sure that the control signals are stable.}. Consequently, signals
 took in some cases longer than intended to propagate through the
-system. An easy solution to this problem was to adjust the control
-unit, the consequences of which are described in
+system. In some situations the problem was solved by adding wires past
+registers, as is the case for the ALU output going to the data memory
+address. Another easier solution to this problem was to adjust the
+states of the control unit, the consequences of which are described in
 \autoref{subsec:controlunit}.
 
 \begin{figure}[ht]
@@ -265,15 +306,15 @@ memory at the beginning of the next instruction execution phase.
   \begin{tabular}{|c|p{50pt}|p{50pt}|p{50pt}|p{50pt}|p{50pt}|}
     \hline
     {\bf Cycle 6} & Assert regfile, status, alu-out and program counter write-enable. Select incremented PC as the new PC value. &  & Select memory as input to register file. Wait for dmem address to propagate.  & Deassert all write-enables.  & \\ \hline
-    {\bf Cycle 7} & Update PC &  & Select incremented PC as the new PC value. Assert regfile and program counter write-enable. & Deassert all write-enables. &  \\ \hline
+    {\bf Cycle 7} & Deassert all write-enables. &  & Select incremented PC as the new PC value. Assert regfile and program counter write-enable. &  &  \\ \hline
     {\bf Cycle 8} &  &  & Deassert all write-enables. &  &  \\ \hline
   \end{tabular}
   \caption{Control unit states cont.}
   \label{tab:controlUnitStatesCont}
 \end{table}
 
-\section{Tests}
-\label{sec:tests}
+\section{Results}
+\label{sec:results}
 To test that the processer implementation was working as it was
 supposed to, I performed functionality testing in ModelSim, as well as
 tests of the implementation uploaded to the FPGA.
@@ -286,25 +327,162 @@ reproduce here the results of the tests of the entire peripheral, as
 these should be extensive enough to be representable.
 
 The contents of my testbench can be found in the {\em
-  toplevel\_tb.vhd} file of my project delivery. For ease of
-reference, though, here is what is done, given in the pseudo-assembler
-syntax of \autoref{subsec:instructionSet}:
-\begin{enumerate}
-\item LDI rX, oxcfoj
-\item LDI odsifjosdjifsof
-\item ETC!!!
-\end{enumerate}
+  toplevel\_tb.vhd} file of my project delivery. In the testbench, the
+toplevel and communication module is tested first. Then, the
+instruction memory is loaded with some instructions, before the
+processor is set to run. The instructions are split into three
+parts. First, some simple single-instruction tests are
+performed. Then, a loop which stores the values 1 to 10 in the
+respective memory addresses is executed. Finally, a loop which loads
+these values from memory and accumulates them in a register is
+run. The result is then stored at memory address 0xFF.
 
+Below follows some screenshots of waveforms captured in ModelSim,
+showing that the results from the test bench are positive.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_2_load_immediate_cropped.png}
+  \caption{\label{fig:ldi} Performing a load immediate operation,
+    storing the value 1 in register 1. As can be seen, the result is
+    properly stored in the register file.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_3_store_cropped.png}
+  \caption{\label{fig:ldi} Performing a store operation. This
+    screenshot shows that the value is properly stored in the data
+    memory module.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_4_load_cropped.png}
+  \caption{\label{fig:ldi} Performing a load from memory. The contents
+    of memory address zero is loaded into register five, as was
+    intenteded.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_5_alu_and_cropped.png}
+  \caption{\label{fig:ldi} An ALU operation of type bitwise AND is
+    performed. As shown here, it is stored in the register specified.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_6_bnz_not_taken_cropped_2.png}
+  \caption{\label{fig:ldi} A Branch Not Zero instruction. As the value
+    of {\em status} implies that the previous result was zero, the
+    branch is not taken. This can be seen on the next value of
+    imem\_addr, which is just an incremented version of the previous
+    value.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_7_store_loop_cropped.png}
+  \caption{\label{fig:ldi} Here we are at the end of the storage loop
+    described at the top of this section. As we can see, every memory
+    location gets updated with the correct value.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_8_load_add_loop_cropped.png}
+  \caption{\label{fig:ldi} Here we are close to the end of the load
+    and accumulation loop. The counting register, register $2$, has a
+    value of $1$, being decremented and reaching $0$ at the end of this
+    iteration. Register $5$ contains the value at the memory address of
+    register $2$, while register $4$ keeps the running total. Register $3$
+    contains the value $-1$.}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/Func_test_9_store_at_offset_cropped.png}
+  \caption{\label{fig:ldi} The running total from the previous loop is
+    properly stored at memory location 0xFF.}
+\end{figure}
 
 \subsection{Timing Tests in Modelsim}
 \label{subsec:timingtestsim}
-The only thing I have here is place and route telling me that there is no trouble - max delay around 10ns, max clock almost 110 MHz.
+I was unable to get timing simulations to run in ModelSim. I do, however, have the results from timing analysis performed during synthesis of both the peripheral alone as well as the entire embedded system. The only thing I have here is place and route telling me that there is no trouble - max delay around 10ns, max clock almost 110 MHz.
 
 \subsection{Functionality Tests on the FPGA}
 \label{subsec:functestfpga}
+To verify the functionality of my processor once uploaded on the FPGA,
+I used the python script provided to load the instruction memory with
+the content of the file {\em testoutput}, whose pseudo-assembly can be
+seen in the file {\em testassembly.s}. I then sent a command to start
+the processor, followed by a command to stop it. I then made a dump of
+the data memory using the python script, to see what was contained
+there. Although the values at addresses 1 to 10 were 1 to 10, as
+expected, the values at addresses 0xb--0xd were the hexadecimal values
+of the instruction that should've been in instruction memory at those
+locations. The value at address 0xff was 0x37 which equals 55, and was
+as expected. When starting and stopping the processor again, taking a
+new dump yielded what should have been the contents of the instruction
+memory. 
+
+I then tried clearing the data memory by setting it all to zero,
+uploading the program again to instruction memory, and taking a new
+data memory dump. This yielded the contents of the instruction
+memory. As there are no such problems when writing to instruction
+memory in the simulation, I suspect that this is a problem with the
+definition of either my embedded system project or the inclusion of
+the peripheral in it. The processor design can be ruled out as the
+cause, at least, seeing how it is not active during the writing and
+reading of data and instruction memory. Any further than this I was
+unfortunately unable to figure out.
 
 \section{Discussion}
 \label{sec:discussion}
+There are several shortcomings in my processor design, the most
+obvious of which is probably the rather extensive amount of states in
+my control unit. As the clock cycle is set at a given frequency for
+the board on which it was to be implemented, the clock frequency will
+not increase by having more finer grained cycle stages. Thus, the
+design gets slower with the amount of cycles it takes to execute an
+instruction. As such, it would be beneficial if this could be reduced. 
+
+One way to do this might be to adopt the convention that writes occur
+on the rising edge of the clock, and reads on the falling edge. With
+this scheme, instead of waiting a cycle to get the updated value of a
+register we would be able to get it in the middle of the current
+cycle. If the work we wanted to do on this value could be performed in
+half a clock cycle's time, then this would be a candidate for
+minimizing the number of control unit states worth considering.
+
+Another possibility would be to try and remove some registers. The
+ones at the output of the control unit, for instance, are not needed,
+but are simply a side effect of using the clock for the internal state
+of the control unit. They are removable in theory, and with a little
+bit of tinkering they might be removable in practice as well. As was
+mentioned in \autoref{subsec:processor}, the registers going out of
+the processor and out to the memory modules were also unforeseen
+hindrances. These were the result of the processor-enable and reset
+signals, however, and thus they serve a more valid purpose. Although
+harder to remove, it might be doable if one could make sure that the
+processor did not actually start until the next cycle after having
+received a logical high processor-enable signal, but stopped
+immediately upon request.
+
+Another possible optimization in the current design is the
+agglomeration of redundant states into one. For instance, at the end
+of every instruction execution sequence there is a state which
+deasserts every write-enable. If one reads the control unit source
+code, one can see that the state was primarily introduced to give time
+for the PC write-enable signal to propagate out of the control unit
+and into the processor, at a time where the cause of this delay was
+not known. If one just asserts and deasserts this signal one cycle
+earlier, it should reach the program counter register at the expected
+time. As such, the synchronization state at the end of the execution
+should be removable.
+
+Optimizations could also be made with the instruction format. 
 
 Instruction format could get even more bits for immediate. 
 Consequences of architecture not turning out the way I wanted.
@@ -315,7 +493,7 @@ Control Unit options---currently slow.
 Simplifications:
     The multiplexor for choosing ALU function is strictly unnecessary - you can just have load and store instructions translate into ones which have the code for 'add' in their funct field.
 FPGA test results failure.
-
+To what degree do I utilize the benefits of a multicycle design?
 
 \section{Conclusion}
 \label{sec:conclusion}
