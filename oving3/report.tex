@@ -1,11 +1,9 @@
 \documentclass[11pt]{article}
 
 \usepackage{graphicx,amsmath,amssymb,subfigure,url,xspace}
-\newcommand{\eg}{e.g.,\xspace}
-\newcommand{\bigeg}{E.g.,\xspace}
+\newcommand{\eg}{e.g.,\xspace} \newcommand{\bigeg}{E.g.,\xspace}
 \newcommand{\etal}{\textit{et~al.\xspace}}
-\newcommand{\etc}{etc.\@\xspace}
-\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etc}{etc.\@\xspace} \newcommand{\ie}{i.e.,\xspace}
 \newcommand{\bigie}{I.e.,\xspace}
 
 \title{Exercise 3 - Implementation of a Pipelined Processor}
@@ -15,24 +13,89 @@
 \maketitle
 
 \begin{abstract}
-
+  Introduce the report's content. What were we supposed to do. What
+  did we achieve. Future work? Conclusions? Short.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introduction}
+Introduce the task in a bit more detail. Write about the challenges in
+the task. For us:
+ - We were to create a pipelined processor
+ - This requires division into pipeline stages 
+ - This introduces potential hazards that must be taken care of, both control hazards and data
+hazards.  
+- We were given suggestions with regards to
 
 \section{Solution}
-\label{sec:solution}
+\label{sec:solution} General chitchat. Write this after writing the
+subsections!  When writing subsection content, if there's something
+you'd like to describe that's too general to fit in it, consider
+writing it here.
+
+\subsection{Instruction Set}
+\label{subsec:instructionset} Tables! Explanation
+
+\subsection{Instruction Format}
+\label{subsec:instructionformat} Tables! Explanation
+
+\subsection{The Processor Architecture}
+\label{subsec:processor} Diagram
+
+\subsection{The Control Unit}
+\label{subsec:controlunit} New diagram?
+
+\subsection{The Hazard Detection Unit}
+\label{subsec:hazarddetection} New diagram?
 
 \section{Results}
-\label{sec:results}
+\label{sec:results} General chitchat To test the design, we tested
+it. Write this after writing the subsections!
+
+\subsection{Tests}
+\label{subsec:tests}
+
+Blablabla General information about test cases - what they do, what
+they test and how they test it
+
+\begin{itemize}
+\item Test case 1 - Fibonacci
+\item
+\end{itemize}
+
+\subsubsection{Functionality Simulation}
+\label{subsubsec:funcsim} Images showing that these were
+OK. Explanation for every image about relevant signals
+
+\subsubsection{Timing Simulation}
+\label{subsubsec:timingsim}
+
+We had trouble with timing blablabla setup time not was not respected
+with regards to status_register_out signal - not stable in time. This
+was because we had the simulation clock period set to 10ns,
+corresponding to 100MHz, which turned out to be too fast for our
+processor. When we turned the period up to 15 ns, corresponding to the
+clock frequency of the FPGA, the timing simulation results were
+successfully completed. Blablabal... output from synthesis indicates
+that our processor's maximum clock frequency is 78MHz-ish, which
+corresponded nicely to our test results.
+
+\subsubsection{Functionality Tests on the FPGA}
+\label{subsec:funcfpga} Screenshots from console output, suggesting
+the success of the tests when run on the FPGA.
 
 \section{Discussion}
 \label{sec:discussion}
 
+
+\subsection{Design Limitations}
+\label{subsec:limitations}
+
+\subsection{Reusability}
+\label{subsec:reusability}
+
+
 \section{Conclusion}
 \label{sec:conclusion}
-
-
 
 \end{document}
