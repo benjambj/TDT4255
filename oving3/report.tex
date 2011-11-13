@@ -1,4 +1,4 @@
- \documentclass[11pt]{article}
+\documentclass[11pt]{article}
 
 \usepackage{graphicx,amsmath,amssymb,subfigure,url,xspace}
 \usepackage[colorlinks=true]{hyperref}
@@ -30,21 +30,12 @@
 
 \section{Introduction}
 \label{sec:introduction}
-Introduce the task in a bit more detail. Write about the challenges in
-the task. For us:
- - We were to create a pipelined processor
- - This requires division into pipeline stages 
- - This introduces potential hazards that must be taken care of, both control hazards and data
-hazards.  
-- We were given suggestions with regards to design choices.
-- We chose to follow those suggestions.
-
 The goal of this exercise was to design a pipelined processor, and
 implement it using VHDL. Once completed, the implementation was to be
 uploaded to an FPGA evaluation board\footnote{The evaluation board was
   an Avnet S6LX16.}. This board thus served as the targeted platform
 on which the design had to function in the end. 
-
+vv
 When designing the processor, several choices had to be made. For
 instance, we had to decide upon our processor's supported instruction
 set, as well as the format of these instructions. Next, the
@@ -90,11 +81,7 @@ is so much alike the suggested one that the schematics are the same.
 
 
 \section{Solution}
-\label{sec:solution} General chitchat. Write this after writing the
-subsections!  When writing subsection content, if there's something
-you'd like to describe that's too general to fit in it, consider
-writing it here.
-
+\label{sec:solution} 
 In our solution, the architecture is a four-stage pipelined
 processor. The different stages are:
 \begin{description}
@@ -296,6 +283,10 @@ from the multiplexor in front of ALU input A goes both as an input to
 the alu as well as data memory, as this is the register which contains
 the value used during a store.
 
+The immediate field used to address memory during the execute stage is
+the eight least significant bits of the immediate value. We thus
+extract these bits before sending them to the data memory module.
+
 The tiny register above the ALU is the status register, which stores a
 bit which indicates whether the last result from an ALU calculation
 was zero or not. The control signal entering it determines whether the
@@ -380,63 +371,361 @@ signals' semantics and calculation are tabulated in
 \end{table}
 
 \section{Results}
-\label{sec:results} General chitchat To test the design, we tested
-it. Write this after writing the subsections!
+\label{sec:results} 
+
+We will now present the results obtained by testing the functionality
+of our piplined processor.  It was executed four different test
+programs on the FPGA intended to validate the functionality of the
+processor and the handling of the various hazards that may arise.  We
+will start with reviewing the the pseudo code for the various test
+programs that we have used.  The different hazards that may occur will
+be specifically examined.
+
 
 \subsection{Tests}
 \label{subsec:tests}
 
-Blablabla General information about test cases - what they do, what
-they test and how they test it
+The tests are presented in their own sections where the code is
+examined in detail. This aims to provide a better understanding of
+test programs before we look at the simulation results.
 
-\begin{itemize}
-\item Test case 1 - Fibonacci
-\item 
-\end{itemize}
+\subsubsection*{Fibonacci}
+Our first program is a traditional algorithm to compute the Nth
+Fibonacci number. This test is chosen to validate the general
+functionality of the processor.
+\begin{enumerate}
+\setcounter{enumi}{-1}
+\item LDI R1,1
+\item LDI R3,1
+\item LD R4,0 //load N from main memory
+\item MOV R5,R3 //forward R3 from instruction 1
+\item ADD R3,R2,R3
+\item MOV R2,R5
+\item SUB R4,R1,R4
+\item BNZ 2 //we need to forward the status from the ALU
+\item ST R2,0 //instruction will be marked as invalid
+\item MOV R1,R1
+\item BNZ 9 //we need to forward the status from the ALU
+\end{enumerate}
+
+\subsubsection*{Loads and stores}
+We have chosen to create a special test to validate that the data
+which is loaded from main memory are forwarded correctly.
+\begin{enumerate}
+\setcounter{enumi}{-1}
+\item LD R1, 0
+\item ST R1, 2 //forward R1 from instruction 0
+\item LD R2, 2
+\item ST R2, 3 //forward R2 from instruction 2
+\item LDI R3, 1
+\item MOV R3, R3 //forward R3 from instruction 4
+\item BNZ 5 //we need to forward the status from the ALU
+\end{enumerate}
+
+\subsubsection*{pow2}
+The third test case calculates numbers that is a power of two. The
+purpose of this test is to validate that the forwarding works for all
+the pipeline stages when we only use one registry during the
+calculations.
+\begin{enumerate}
+\setcounter{enumi}{-1}
+\item LDI R1, 1
+\item ADD R1, R1, R1 //forward R1 from instruction 0
+\item ADD R1, R1, R1 //forward R1 from instruction 1
+\item ADD R1, R1, R1 //forward R1 from instruction 2
+\item ADD R1, R1, R1 //forward R1 from instruction 3
+\item ADD R1, R1, R1 //forward R1 from instruction 4
+\item ADD R1, R1, R1 //forward R1 from instruction 5
+\item ST R1, 2 //forward R1 from instruction 6
+\item ADD R1, R1, R1 //forward R1 from instruction 6
+\item ST R1, 0 //forward R1 from instruction 8
+\end{enumerate}
+
+\subsubsection*{if-else}
+We have made an if-else test to demonstrate that the instructions that
+are marked as invalid is actually not carried out. We have also added
+an LDI instruction between SUB and the BNZ to show that the status
+register works without any forwarding.
+\begin{enumerate}
+\setcounter{enumi}{-1}
+\item LDI R1, 2 
+\item LDI R2, 1
+\item SUB R3, R2, R1 //forward from instruction 0 and 1
+\item LDI R5, 5
+\item BNZ 6 //we use the status register
+\item ST R2, 0 //the store instruction is invalid
+\item ST R1, 1
+\item MOV R1, R1
+\item BNZ 7
+\end{enumerate}
 
 \subsubsection{Functionality Simulation}
-\label{subsubsec:funcsim} Images showing that these were
-OK. Explanation for every image about relevant signals
+\label{subsubsec:funcsim}
+The simulation of the test bench was done with ISim. This is a similar
+simulation program like ModelSim only that it is newer and easier to
+use. We will now go through the various test programs and see that the
+signals are properly set.
+
+\subsubsection*{Fibonacci}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_load_immediate_1_to_reg_1.png}
+\caption{We are loading 1 immediate into R1.}
+\label{fig:register_write}
+\end{figure}
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_load_parameter_from_memory.png}
+\caption{We load 11 from memory address 0, into register R4. We have now selected which Fibonacci number to calculate.}
+\label{fig:register_write}
+\end{figure}
+
+\pagebreak
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_decrement_counter_status_reg_mux_out_not_zero_no_forwarding.png}
+\caption{BNZ follows directly after an ALU instruction. This results in that the status from the ALU will be forwarded.}
+\label{fig:register_write}
+\end{figure}
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_branch_taken_invalid_instruction_negated_control_signals.png}
+\caption{When we subtracts R1 from R4, the result is 10. BNZ is carried out and the next instruction that is fetched is marked as invalid.}
+\label{fig:register_write}
+\end{figure}
+
+\pagebreak
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_counter_zero_branch_not_taken_forwarding_status_register.png}
+\caption{When we subtracts R1 from R4, the result is 0. BNZ does not occur and the next instruction is valid.}
+\label{fig:register_write}
+\end{figure}
+
+\pagebreak
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_write_data_memory_write_enabled.png}
+\caption{Writing to the main memory is enabled, and the calculated Fibonacci number is stored.}
+\label{fig:register_write}
+\end{figure}
+
+\pagebreak
+
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fibonacci_reading_result_toplevel.png}
+\caption{We read 89 from memory address 0. This is the eleven Fibonacci number which shows that the calculations are correct.}
+\label{fig:register_write}
+\end{figure}
+
+\subsubsection*{Loads and stores}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{loadsandstores_load_forwarding_to_store.png}
+\caption{When we load the data from main memory, it will be forwarded to the following storage instruction. One can notice that we found out that it is possible to change the output to both binary, decimal and hex.}
+\label{fig:register_write}
+\end{figure}
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{loadsandstores_results_number_in_every_address_location.png}
+\caption{Forwarding has functioned correctly, and the expected results are read from the toplevel.}
+\label{fig:register_write}
+\end{figure}
+
+\subsubsection*{pow2}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{usereg1_forwarding_results.png}
+\caption{We see that the forwarding signals are continuously on, since we only use R1 during the calculation.}
+\label{fig:register_write}
+\end{figure}
+
+\subsubsection*{if-else}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{testbranch_no_forward_status_register_marks_following_invalid.png}
+\caption{LDI follows an ALU instruction, so BNZ use the status register without forwarding the result. The branche is taken so the following storage instruction is marked as invalid.}
+\label{fig:register_write}
+\end{figure}
+
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{testbranch_results_stored_in_2_not_0.png}
+\caption{When we read from the main memory, we see that the invalid storage instructions have not been performed.}
+\label{fig:register_write}
+\end{figure}
 
 \subsubsection{Timing Simulation}
 \label{subsubsec:timingsim}
 
-We had trouble with timing blablabla setup time not was not respected
-with regards to status\_register\_out signal - not stable in time. This
-was because we had the simulation clock period set to 10ns,
-corresponding to 100MHz, which turned out to be too fast for our
-processor. When we turned the period up to 15 ns, corresponding to the
-clock frequency of the FPGA, the timing simulation results were
-successfully completed. Blablabal... output from synthesis indicates
-that our processor's maximum clock frequency is 78MHz-ish, which
-corresponded nicely to our test results.
+Before we carried out functionality tests on the FPGA, we tested that
+the functions behaved correctly with respect to the Spartan
+architecture.  This was achieved by performing timing simulations in
+ISim.  During the simulations we experienced one problem that the
+status register was not updated quickly enough.  As a result we used
+time to consider optimizations we could do to improve how quickly the
+control unit could be notified if a branch should be taken or not.
+What we discovered during the simulation was that we had set the clock
+frequency at 100MHz.  Our processor design synthesized only to support
+a maximum of 78MHz.  So when we turned down the clock frequency to
+66MHz, corresponding to the clock frequency of the FPGA, the processor
+design functioned correctly.
 
 \subsubsection{Functionality Tests on the FPGA}
-\label{subsec:funcfpga} Screenshots from console output, suggesting
-the success of the tests when run on the FPGA.
+\label{subsec:funcfpga} 
+To verify the functionality of our pipelined processor after it had
+been configured on the FPGA, we used the python script we had been
+provided to initialize the instruction memory with our simulation
+programs. We tested the four simulation programs on the FPGA.  Before
+each test we initialized the instruction and data memory with
+zero. This was done to ensure that old data could not ruin the
+execution of the different programs.
+
+\subsubsection*{Fibonacci}
+\begin{figure}[!h]
+\includegraphics[scale=1.0]{basic_design.png}
+\caption{The processor was able to calculate the eleventh Fibonacci number when we performed the test on the FPGA.}
+\label{fig:register_write}
+\end{figure}
+
+\subsubsection*{Loads and stores}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{loads_and_stores_in_sequence.png}
+\caption{We see that forwarding of the data read from main memory works correctly, the following storage instruction have the expected behavior.}
+\label{fig:register_write}
+\end{figure}
+
+\subsubsection*{pow2}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{fill_pipeline_with_usages_of_reg1_to_test_hazards.png}
+\caption{Data and instruction memory is initialized with zero. We read 128 from the data memory after execution of the program which is the expected result.}
+\label{fig:register_write}
+\end{figure}
+
+\subsubsection*{if-else}
+\begin{figure}[!h]
+\includegraphics[scale=0.5]{test_branch_works_when_no_hazard.png}
+\caption{Nothing has been stored in memory address 0, but we load 2 from memory address 1.}
+\label{fig:register_write}
+\end{figure}
 
 \section{Discussion}
 \label{sec:discussion}
+Our processor has a relatively low percentage of wasted cycles during
+execution. There are few hazards our design cannot handle, and as such
+an average of one instruction completed per cycle is achievable with
+our supported instruction set. There is one case in which we lose an
+instruction slot by inserting a no-op, however, and that is upon
+encountering a branch which is taken\footnote{This is explained in
+  \autoref{sec:solution}}. Thus we have a case of suboptimal
+performance, and this would be a point deserving of further
+investigation if the design was to be reconsidered. As we had to
+consider the entirety of the architecture and design, however, we
+decided to stick with the simplest solution to simplify the validation
+of the system as a whole.
 
-What went well.
-What can be improved
-- Maybe avoid invalid instructions after branch taken by taking branch earlier?
--  But status register already on critical path, so this might very well not work.
-Things.
+One alternative solution would have been to try and forward the jump
+address to the instruction memory, so that the next instruction to
+load would have been the correct one. This does, however, seem
+optimistic, considering how branch decision making is already on our
+critical path. Adding any more logic here would most likely extend
+this, and we would have to increase our cycle period. Thus, even if
+this was a plausible solution we might lose out on processor
+performance due to the decrease in clock frequency. This would have to
+be investigated further before a conclusion can be reached.
 
-- Design choices of simple decoding versus dense instructions / more bits for immediate field. (We might like this since 32-bitvalues)
-- Function field could be smaller
-- Not allowing status register to be written only on ALU instructions---cleaner, but hampers things (combining two instructions)
-- Could have sign-extended the immediate to allow loading negative values.
+The way of resolving branches previously described would also be
+slightly messy, as it might not be an intuitive way of resolving the
+issue. A slightly more sophisticated approach would be to implement
+branch prediction. This would not completely remove the need of
+inserting no-ops in the pipeline, but it might reduce it. For
+instance, in a loop which jumps backwards we'd get a no-op for every
+iteration, whereas if branch prediction was implemented we'd only get
+one or two. As in the previous case, one would have to check whether
+this increased the minimal clock cycle time, and weigh the
+alternatives after having made precise measurements. 
+
+\newline{}
+
+Another point at which we had to choose between simplicity and
+optimality was the design of our instruction format. In our current
+design, we have a simple format whose structure and size is constant
+across all instructions. This leads to very simple decoding: All
+fields are treated as a value in its own right, and there's no need to
+decode based on the instruction's content. The downside of this is
+that we end up with a lot of wasted space in our instruction
+memory. None of our instructions use all the fields, for instance, and
+some of the fields can be collapsed into smaller ones. If we allowed
+the instruction format to vary in size and allowed for increased
+decoding complexity, we could achieve denser code. As an example, the
+ALU operations does not use the immediate field. If the instruction
+simply didn't contain this field, we would save 13 bits per ALU
+instruction in the program. Since our instruction memory space is
+limited, this could be a worthy tradeoff. As was mentioned, however,
+the complexity that comes with this solution is significant. We would
+have to support fetching of non-alligned memory words, and decode the
+instruction based on its content. Not only would the design get
+messier, it might also make the processor slower. One can thus not
+reach any conclusion in the general case with regards to the
+optimality of one option versus the other.
 
 \subsection{Design Limitations}
 \label{subsec:limitations}
+Our processor has a very limited set of use cases, as our instruction
+set is small. What is provided might be enough to meet certain needs,
+but others might find it to be lacking. As such one should analyze the
+scenario in which it is to be used, to discover minimum
+functionality. Certain general improvements might be implemented,
+however, and are described below.
+
+One significant limitation is our load and store instructions, which
+address memory based on the immediate field. There is as such no room
+for dynamic addressing, and arrays cannot be supported. One way to fix
+this particular issue could be to change these instructions to instead
+use the eight least significant bits of the contents of register B as
+the address. This would allow for a program which calculates the
+addresses to use. This should be implementable with little
+effort. Extending the ALU with more operations would also be
+plausible, as we have room in our instruction for addressing sixteen
+but we only use four. If we only added ones with an execution time
+lower than the cycle time, this could also be effortlessly completed.
+
+\newpage{} 
+
+Another issue is the speed of the processor. It runs at slightly more
+than one third of the maximum clock frequency of the FPGA, and for our
+purposes this might be enough. That's not to say it cannot be
+improved, though. Further analysis of our critical path might reveal
+actions which could be taken to increase the maximum clock frequency
+without hampering the functionality of the processor, and if profiling
+deemed this to be necessary for applications to run at an acceptable
+pace one could consider improving the performance.
 
 \subsection{Reusability}
 \label{subsec:reusability}
+Our processor has been implemented with the use of named constants and
+generics in the different components, instead of magical numbers. This
+makes deploying it to environments with different memory and bus sizes
+easier. For instance, if we wanted adapt the processor for use on a
+64-bit architecture, adjusting these values and making a few
+modifications to the ALU should be all that is needed.
 
+We have also seperated the hazard detection unit and control unit into
+individual modules. This might make it easier to reuse these
+components in different designs, where there is a lot of overlap
+between functionality and hazards.
 
 \section{Conclusion}
 \label{sec:conclusion}
+We have in this exercise implemented a three stage pipelined
+processor. The main challenge we faced was to test that we had handled
+all the hazards that can occur in our processor design. This led to
+the development of several test programs so we could do a detailed
+analysis of the behavior of the processor.  Our experiences from the
+implementation of a multi-cycle processor made this exercise
+easier. This is because we have now got more experience with how the
+clock affects the digital design. A good lesson we learned from the
+implementation of the pipelineded processor was how overclocking could
+make the circuit unstable.  These experiences were obtained from the
+timing simulations we performed, it nevertheless gave us a better
+insight in the properties one must consider when implementing a
+processor. How much work is done in a cycle against how long a cycle
+takes. The execution of the test programs on the FPGA was a success.
 
 \end{document}
