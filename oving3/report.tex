@@ -47,7 +47,47 @@ on which the design had to function in the end.
 
 When designing the processor, several choices had to be made. For
 instance, we had to decide upon our processor's supported instruction
-set, as well as the 
+set, as well as the format of these instructions. Next, the
+processor's architecture had to be specified. This included how the
+data and control path should look, and how we should split the
+processor's datapath into separate pipeline stages. Having made this
+split, we had to check if any hazards could arise by having several
+instructions in the pipeline simultaneously. These hazards would then
+have to be handled, either by documenting them and disallowing code in
+which they occur, or adding special hardware for coping with the
+hazards.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|c|}
+    \hline
+    {\bf name} & opcode & unused & funct & imm & Rd & Rb & Ra \\ \hline
+    {\bf bits} & 31--29 & 28--24 & 23--20 & 19--12 & 11--8 & 7--4 & 3--0 \\ \hline
+  \end{tabular}
+  \caption{The suggested instruction format.}
+  \label{tab:suggestedFormat}
+\end{table}
+
+We were provided with suggestions regarding nearly all of these design
+issues. The suggested instruction format is shown in
+\autoref{tab:suggestedFormat}. As for the instruction set, we
+were required to provide the following instructions:
+\begin{itemize}
+\item Instruction(s) which use the ALU.
+\item An instruction which loads an immediate value to a register.
+\item An instruction which loads the value at a memory location to a register.
+\item An instruction which stores the value in a register to a memory location.
+\item A branch instruction.
+\end{itemize}
+
+We were also given suggestions with regards to the processor
+architecture. When designing our processor, we decided to make use of
+nearly all these suggestions. Specifically, our processor architecture
+is so much alike the suggested one that the schematics are the same. 
+- blablabla you can see it in sec:processorarch, 
+(- only diff is control unit/hazard unit - mention this in solution? 
+(- also diff in instr. format - mention in solution!)
+
 
 \section{Solution}
 \label{sec:solution} General chitchat. Write this after writing the
