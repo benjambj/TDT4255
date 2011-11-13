@@ -1,6 +1,7 @@
-\documentclass[11pt]{article}
+ \documentclass[11pt]{article}
 
 \usepackage{graphicx,amsmath,amssymb,subfigure,url,xspace}
+\usepackage[colorlinks=true]{hyperref}
 \newcommand{\eg}{e.g.,\xspace} \newcommand{\bigeg}{E.g.,\xspace}
 \newcommand{\etal}{\textit{et~al.\xspace}}
 \newcommand{\etc}{etc.\@\xspace} \newcommand{\ie}{i.e.,\xspace}
@@ -13,6 +14,16 @@
 \maketitle
 
 \begin{abstract}
+  In this exercise, we were to design and implement a pipelined
+  processor. Our implementation consisted of three main pieces: The
+  toplevel processor architecture, which performs calculations and
+  operates on the register file and memory; A control unit, which is
+  responsible for interpreting instructions and driving the processor
+  accordingly; And a hazard detection unit, whose task is to detect
+  and correct data hazards. The design's critical path ended up a bit
+  long, but it was still able to function correctly when physically
+  realized on an FPGA evaluation board.
+
   Introduce the report's content. What were we supposed to do. What
   did we achieve. Future work? Conclusions? Short.
 \end{abstract}
@@ -25,7 +36,18 @@ the task. For us:
  - This requires division into pipeline stages 
  - This introduces potential hazards that must be taken care of, both control hazards and data
 hazards.  
-- We were given suggestions with regards to
+- We were given suggestions with regards to design choices.
+- We chose to follow those suggestions.
+
+The goal of this exercise was to design a pipelined processor, and
+implement it using VHDL. Once completed, the implementation was to be
+uploaded to an FPGA evaluation board\footnote{The evaluation board was
+  an Avnet S6LX16.}. This board thus served as the targeted platform
+on which the design had to function in the end. 
+
+When designing the processor, several choices had to be made. For
+instance, we had to decide upon our processor's supported instruction
+set, as well as the 
 
 \section{Solution}
 \label{sec:solution} General chitchat. Write this after writing the
@@ -33,20 +55,289 @@ subsections!  When writing subsection content, if there's something
 you'd like to describe that's too general to fit in it, consider
 writing it here.
 
+In our solution, the architecture is a four-stage pipelined
+processor. The different stages are:
+\begin{description}
+\item[Fetch] In this stage, the instruction stored at the address
+  contained in the program counter is fetched, and stored in an
+  instruction register.
+\item[Decode] In this stage, the instruction in the instruction
+  register is decoded. The opcode is sent to a control unit to
+  determine the values of control signals, the operands in the
+  instruction is read from the register file, and the rest of the
+  instruction is forwarded to thej next stage. 
+\item[Execute] In this stage, any ALU operation required is performed,
+  and memory loads or stores are issued.
+\item[Write-back] In this stage, results which are to be stored in the
+  register file are propagated to it. The value to be stored is not
+  actually updated until the next cycle, however.
+\end{description}
+In this design, there is no potential for structural hazards: no two
+instructions use the same hardware components at the same time. There
+are, however, possibilities for both data hazards and control hazards. 
+
+The data hazards occur when one instruction earlier in the pipeline
+uses the value of a register which is written by an instruction later
+in the pipeline. There are three cases where this can happen:
+\footnote{In our register file, register zero has the constant value
+  zero. Thus, the hazards described here does not hold for register
+  zero.}
+\begin{enumerate}
+\item The instruction in the decode stage loads operands from a
+  register which is written to by the instruction in the write-back
+  stage. 
+\item The instruction in the execute stage uses operands from a
+  register which is written to by the instruction in the write-back
+  stage.
+\item The instruction in the decode stage is a branch which reads the
+  status register, and the instruction in the execute stage is an ALU
+  instruction which writes to the status register.
+\end{enumerate}
+To deal with these issues, we implemented logic which detects the
+hazard and forwards the correct value to the instruction using
+it. This logic is described in \autoref{subsec:hazarddetection}.
+
+In our design, a single control hazard can occur: If a branch is
+taken, the instruction being loaded into the instruction register in
+the fetch state will be the one following the branch instruction and
+thus most likely not be the one we actually want to execute next. As
+such, we need a way to mark the instruction as invalid. We solved this
+by maintaining a validation bit.
+
+As we designed our processor based on our instruction set and format,
+and not vice versa, we start by introducing these. Afterwards, we
+describe the architecture of our implementation in three parts -
+processor architecture, the control unit and the hazard unit.
+
 \subsection{Instruction Set}
-\label{subsec:instructionset} Tables! Explanation
+\label{subsec:instructionset} 
+The instruction set of our processor is given in pseudo-assembly in \autoref{tab:instructionSet}. 
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|p{165pt}|}
+    \hline
+    {\bf Pseudo-assembly} & {\bf Semantics} \\ \hline
+    ADD/SUB/MOV/AND r{\em D}, r{\em A}, r{\em B} &  Performs the given operation on the values in register number {\em A} and {\em B}, and stores the result in register number {\em D}. For the non-commutative operation SUB, it is important to note that {\em B} gets subtracted from {\em A}, {\ie} SUB r{\em D}, r{\em A}, r{\em B} corresponds to $D = A - B$. For MOV, only r{\em A} is used. \\ \hline
+    LDI r{\em D} {\em value} & Stores {\em value} in register number {\em D}. \\ \hline
+    LD r{\em D}, {\em address} & Loads the value located at memory address $address$ into register number {\em D} \\ \hline
+    ST r{\em B}, {\em offset} & Stores the value in register number {\em B} at memory address $address$. \\ \hline
+    BNZ {\em address} & If the ALU instruction last executed did not set the status register of the ALU to zero, instruction fetching will continue from instruction memory address {\em address}, {\ie} if the result of the previous computation was non-zero, we jump to address $address$. Otherwise, instruction fetching will resume as if no instruction had been executed. \\ \hline
+  \end{tabular}
+  \caption{The supported instruction set.}
+  \label{tab:instructionSet}
+\end{table}
+
 
 \subsection{Instruction Format}
-\label{subsec:instructionformat} Tables! Explanation
+\label{subsec:instructionformat} 
+The format of our instructions is tabulated in
+\autoref{tab:instructionFormat}. To make both instruction decoding as
+well as the mapping between the semantics of an instruction and its
+binary format simple, it has a fixed size with fields designated to a
+specific purpose across all instructions. 
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|c|c|c|c|c|}
+    \hline
+    {\bf name} & opcode & func & immediate & rD & rB & rA \\ \hline
+    {\bf bits} & 31--29 & 28--25 & 24--12 & 11--8 & 7--4 & 3--0 \\ \hline
+  \end{tabular}
+  \caption{The instruction format of our processor.}
+  \label{tab:instructionFormat}
+\end{table}
+
+The opcode field determines what kind of instruction is
+executed. \autoref{tab:opcodeInstructionMapping} illustrates the exact
+mapping. As we have five different instructions, three bits were
+needed to distinguish these if we were to keep with our intention of
+having no elaborate decoding scheme.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|}
+    \hline
+    {\bf Opocode} & {\bf Instruction Performed} \\ \hline
+    000 & ALU-operation \\ \hline
+    001 & Load immediate \\ \hline
+    010 & Load from memory \\ \hline
+    011 & Store to memory \\ \hline
+    100 & Branch not zero \\ \hline
+  \end{tabular}
+  \caption{The mapping between the value in the opcode field and the instruction performed.}
+  \label{tab:opcodeInstructionMapping}
+\end{table}
+
+The function field has an effect only during the execution of an ALU
+instruction, as this is the only instruction during which the status
+register can be written and the ALU result is used further down the
+pipeline. For an ALU-instructino, the mapping between the binary value
+of the function field and the operation performed is given in
+\autoref{tab:funcOperationMapping}. In any other case, the bits have
+don't-care values.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|c|}
+    \hline
+    {\bf Func} & {\bf ALU operation} \\ \hline
+    0000 & MOV \\ \hline
+    0001 & AND \\ \hline
+    0110 & SUB \\ \hline
+    0111 & ADD \\ \hline
+    Otherwise & The ALU output is set to zero \\ \hline
+  \end{tabular}
+  \caption{The mapping between the value in the opcode field and the alu operation performed. The function field can take any value when executing a non-ALU instruction, as the result computed by the ALU has no effect.}
+  \label{tab:funcOperationMapping}
+\end{table}
+
+The immediate field is used for several things: Holding the branch
+address during Branch not zero; Holding the memory address during
+loads and stores; and holding the immediate value during Load
+immediate. When it is used as an address, as is the case for both
+branches and memory accesses, the eight least significant bits are
+used. When it is used as the immediate value to load into a register,
+it is zero-extended to 32-bits.
+
+The last three fields contain binary digits identifying which
+registers to use during an instruction. When an instruction does not
+use three registers, the ones it doesn't use assume don't-care values. 
 
 \subsection{The Processor Architecture}
-\label{subsec:processor} Diagram
+\label{subsec:processor} 
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.25]{figures/pipelined_architecture.png}
+  \caption{\label{fig:processorArchitecture} }
+\end{figure}
+
+A schematic of our architecture is depicted in
+\autoref{fig:processorArchitecture}. To the left of the instruction
+memory is our program counter register, whose input comes from a
+multiplexor choosing between either an incremented version of the
+program counter, or the eight least significant bits of the
+immediate. The multiplexor is controlled by the control unit, as
+further explained in \autoref{subsec:controlunit}. The pipeline stages
+are divided by the three large registers in the schematic. The output
+from the instruction memory is stored in the first of these, segmented
+as per the instruction format described in
+\autoref{subsec:instructionformat}\footnote{The topmost part is the
+  most significant bit, {\ie} the first segment is the opcode, the
+  second is the function field {\etc}}. The other large registers are
+the ones which seperate the decode and execute stage and the execute
+stage and write-back stage. Their contents follow from what they are
+connected to in the preceding stage. 
+
+The tiny register above the instruction register holds a validation
+bit, which is used to determine whether the instruction in the
+instruction register is valid or not. It is used to avoid executing
+the instruction following a branch when the branch is taken, and any
+garbage value contained in the register when the processor is started.
+
+The two multiplexors after the register file controls which data is
+stored as potential input to the alu. These handle the data hazard
+that occurs if the instruction in the write-back stage writes to a
+register which the instruction in the decode stage uses as an
+operand. This selection is described in more detail in
+\autoref{subsec:hazarddetection}. 
+
+The control unit governs which signals and components are active
+during the execution of a given instruction. The hazard detection unit
+controls the multiplexors which forward data in the case of data
+hazards. These components are described in
+\autoref{subsec:controlunit} and \autoref{subsec:hazarddetection},
+respectively.
+
+The multiplexor in front of ALU input A and B handles the data hazard
+in which the instruction in the execute stage depends on the result of
+the preceding instruction, now in the write-back stage. The output
+from the multiplexor in front of ALU input A goes both as an input to
+the alu as well as data memory, as this is the register which contains
+the value used during a store.
+
+The tiny register above the ALU is the status register, which stores a
+bit which indicates whether the last result from an ALU calculation
+was zero or not. The control signal entering it determines whether the
+instruction currently in the execute-phase can write to it or not. The
+multiplexor straight above it handles the potential data hazards
+occuring when a branch instruction directly follows an ALU
+instruction, by forwarding the current ALU status to the control unit
+instead of the old value.
+
+The right-most multiplexor selects the input to the register file,
+choosing between the ALU output, the data read from memory, or the
+immediate value. As the immediate value is only 13 bits, it is
+zero-extended to 32 bits to fit the register file size. The selection
+is controlled by the control bits in the pipeline register, which has
+been passed along from the previous stage.
 
 \subsection{The Control Unit}
-\label{subsec:controlunit} New diagram?
+\label{subsec:controlunit} 
+The structure of our control unit is depicted in
+\autoref{fig:controlunit}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/control_unit.png}
+  \caption{\label{fig:controlunit} A schematic of our control unit, as a black box. The input signals are given on the left, and the output signals on the right.}
+\end{figure}
+
+It is a completely combinatorial circuit, and the outputs are
+calculated as functions of the inputs. The control signal semantics
+and their calculation formulae are given in \autoref{tab:controlunit}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|c|p{150pt}|p{150pt}|}
+    \hline
+    {\bf Output signal} & {\bf Semantics} & {\bf Calculation} \\ \hline
+    {\bf Status reg WE} & Determines whether this instruction can write to the status register. & Opcode = ALU \\ \hline
+    {\bf Dmem WE} & Determines whether this instruction can write to data memory & Opcode = STORE \\ \hline
+    {\bf Regfile mux} & Selects the data to propagate to the register file & Opcode = ALU : Select ALU output, 
+                                                                             Opcode = LDI : Select immediate, 
+                                                                             Opcode = LOAD : Select memory output\\ \hline
+    {\bf Regfile WE} & Determines whether this instruction can write to the register file & Opcode = ALU or LDI or LOAD \\ \hline
+    {\bf PC mux} & Selects which program counter value to fetch instructions from. & Opcode = BNZ and status\_register = 0 : Select immediate , 
+                                                                                                                    Else  : Select incremented value\\ \hline
+    {\bf Next instr. valid} & Indicates whether the next instruction is valid or not. & Opcode = BNZ and status\_register = 0 and current\_instruction\_valid=1 : 0 ,
+                                                                                                                                                        Else : 1\\ \hline
+  \end{tabular}
+  \caption{The semantics of the different control signals output from the control unit, and the formula used to calculate them.}
+  \label{tab:controlunit}
+\end{table}
+
 
 \subsection{The Hazard Detection Unit}
-\label{subsec:hazarddetection} New diagram?
+\label{subsec:hazarddetection} 
+The structure of our hazard detection unit is shown in
+\autoref{fig:hazarddetection}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[scale=0.35]{figures/hazard_unit.png}
+  \caption{\label{fig:hazarddetection} }
+\end{figure}
+
+As the control unit, this is also a combinatorial circuit. Its output
+signals' semantics and calculation are tabulated in
+\autoref{tab:hazarddetection}.\footnote{The data hazards discussed
+  here were introduced in \autoref{sec:solution}}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{|p{60pt}|p{150pt}|p{150pt}|}
+    \hline
+    {\bf Output signal} & {\bf Semantics} & {\bf Calculation} \\ \hline
+    {\bf Forward status} & High when we have a data hazard on the status register & Opcode = BNZ and status\_register\_WE = 1 \\ \hline
+    {\bf Forward regD to decode stage regA} & High when the same register A is loaded in the decode stage as is written in the write-back stage & write-back regD = decode regA and write-back regD /= reg zero and regfile\_WE = 1 \\ \hline
+    {\bf Forward regD to decode stage regB} & \multicolumn{2}{|p{300pt}|}{The same as above except that register A is replaced with register B} \\ \hline
+    {\bf Forward regD to exec stage regA} & High when the same register is alu operand A in the execute stage as is written in the write-back stage & write-back regD = exec operandA and write-back regD /= reg zero and regfile\_WE = 1 \\ \hline
+    {\bf Forward regD to exec stage regB} & \multicolumn{2}{|p{300pt}|}{The same as above except that operand A is replaced with operand B} \\ \hline    
+  \end{tabular}
+  \caption{The semantics of different hazard detection unit output signals, and the formula used to calculate them.}
+  \label{tab:hazarddetection}
+\end{table}
 
 \section{Results}
 \label{sec:results} General chitchat To test the design, we tested
@@ -60,7 +351,7 @@ they test and how they test it
 
 \begin{itemize}
 \item Test case 1 - Fibonacci
-\item
+\item 
 \end{itemize}
 
 \subsubsection{Functionality Simulation}
@@ -71,7 +362,7 @@ OK. Explanation for every image about relevant signals
 \label{subsubsec:timingsim}
 
 We had trouble with timing blablabla setup time not was not respected
-with regards to status_register_out signal - not stable in time. This
+with regards to status\_register\_out signal - not stable in time. This
 was because we had the simulation clock period set to 10ns,
 corresponding to 100MHz, which turned out to be too fast for our
 processor. When we turned the period up to 15 ns, corresponding to the
@@ -87,6 +378,16 @@ the success of the tests when run on the FPGA.
 \section{Discussion}
 \label{sec:discussion}
 
+What went well.
+What can be improved
+- Maybe avoid invalid instructions after branch taken by taking branch earlier?
+-  But status register already on critical path, so this might very well not work.
+Things.
+
+- Design choices of simple decoding versus dense instructions / more bits for immediate field. (We might like this since 32-bitvalues)
+- Function field could be smaller
+- Not allowing status register to be written only on ALU instructions---cleaner, but hampers things (combining two instructions)
+- Could have sign-extended the immediate to allow loading negative values.
 
 \subsection{Design Limitations}
 \label{subsec:limitations}
